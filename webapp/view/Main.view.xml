@@ -1,0 +1,171 @@
+<mvc:View
+    controllerName="test.my.frontend.actions.controller.Main"
+    displayBlock="true"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:l="sap.ui.layout"
+    xmlns:f="sap.ui.layout.form"
+>
+    <App>
+        <Page
+            id="page"
+            title="Ticket Detail"
+        >
+			<headerContent>
+				<Button
+					id="jouleToggle"
+					text="Toggle Joule"
+					icon="sap-icon://da"
+					press=".onJouleTogglePress"
+				/>
+				<Button
+					id="jouleToggleNav"
+					text="Toggle Joule Navigation"
+					icon="sap-icon://paging"
+					press=".onJouleToggleNavPress"
+				/>
+				<Button
+					id="jouleSendUserMessage"
+					text="Send User Message"
+					icon="sap-icon://comment"
+					press=".onJouleSendUserMessagePress"
+				/>
+			</headerContent>
+            <content>
+                <f:SimpleForm
+                    id="ticketForm"
+                    editable="false"
+                    layout="ResponsiveGridLayout"
+                    labelSpanXL="3"
+                    labelSpanL="3"
+                    labelSpanM="3"
+                    labelSpanS="12"
+                    adjustLabelSpan="false"
+                    columnsXL="2"
+                    columnsL="2"
+                    columnsM="1"
+                    singleContainerFullSize="false"
+                >
+                    <f:content>
+                        <Title
+                            text="Overview"
+                            level="H5"
+                        />
+                        <Label text="Title" />
+                        <Text text="{ticket>/Title}" />
+
+                        <Label text="Priority" />
+                        <ObjectStatus
+                            text="{ticket>/Priority}"
+                            state="{= ${ticket>/Priority} === 'P1' ? 'Error' : (${ticket>/Priority} === 'P2' ? 'Warning' : 'Success') }"
+                        />
+
+                        <Label text="Status" />
+                        <ObjectStatus
+                            text="{ticket>/Status}"
+                            state="Information"
+                        />
+
+                        <Label text="ETA (Dev)" />
+                        <Text text="{ticket>/EtaDev}" />
+
+                        <Label text="Percent Complete" />
+                        <ProgressIndicator
+                            percentValue="{ticket>/PercentComplete}"
+                            displayValue="{= ${ticket>/PercentComplete} + '%'}"
+                        />
+
+                        <Title
+                            text="Impact"
+                            level="H5"
+                        />
+                        <Label text="Customer" />
+                        <Text text="{ticket>/Customer}" />
+
+                        <Label text="Environment" />
+                        <Text text="{ticket>/Environment}" />
+
+                        <Label
+                            text="Workaround"
+                            visible="{= !!${ticket>/Workaround} }"
+                        />
+                        <Text
+                            text="{ticket>/Workaround}"
+                            visible="{= !!${ticket>/Workaround} }"
+                        />
+
+                        <Title
+                            text="Details"
+                            level="H5"
+                        />
+                        <Label text="Repro Steps" />
+                        <Text text="{ticket>/ReproSteps}" />
+
+                        <Label text="Notes" />
+                        <Text text="{ticket>/Notes}" />
+
+                        <Title
+                            text="Links"
+                            level="H5"
+                        />
+                        <Label text="Branch" />
+                        <Link
+                            text="{ticket>/Branch}"
+                            href="{= 'https://example.com/repo/tree/' + ${ticket>/Branch} }"
+                            target="_blank"
+                        />
+
+                        <Label text="PR" />
+                        <Link
+                            text="{ticket>/PrLink}"
+                            href="{ticket>/PrLink}"
+                            target="_blank"
+                        />
+
+                        <Label text="CI Job" />
+                        <Link
+                            text="{ticket>/CiJobLink}"
+                            href="{ticket>/CiJobLink}"
+                            target="_blank"
+                        />
+                    </f:content>
+                </f:SimpleForm>
+                <Title
+                    text="Messages (Recent)"
+                    level="H5"
+					class="sapUiMediumMarginBegin sapUiMediumMarginTop"
+                />
+                <List
+                    id="msgList"
+                    items="{ticket>/Messages}"
+                    class="sapUiMediumMargin"
+					width="auto"
+                >
+                    <CustomListItem>
+                        <HBox
+                            alignItems="Center"
+                            justifyContent="SpaceBetween"
+                            class="sapUiSmallMargin"
+                        >
+                            <VBox>
+                                <ObjectStatus
+                                    text="{ticket>role}"
+                                    state="{= ${ticket>role} === 'Customer' ? 'Warning' : (${ticket>role} === 'QM' ? 'Information' : 'None') }"
+                                />
+                                <Text text="{ticket>text}" />
+                                <Text
+                                    text="{ticket>idea}"
+                                    visible="{= !!${ticket>idea} }"
+                                />
+                            </VBox>
+                            <ObjectStatus
+                                text="{ticket>ts}"
+                                state="Success"
+                            />
+                        </HBox>
+                    </CustomListItem>
+                </List>
+            </content>
+        </Page>
+    </App>
+</mvc:View>

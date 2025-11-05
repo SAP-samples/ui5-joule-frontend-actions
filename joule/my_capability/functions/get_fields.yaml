@@ -1,0 +1,15 @@
+action_groups:
+- actions:
+  - type: frontend-action
+    name: test.my.frontend.actions.getFields.v1
+    result_variable: frontendActionResult
+  - type: message
+    scripting_type: handlebars
+    message:
+      type: text
+      markdown: true
+      content: |
+        Fields:
+        {{#each frontendActionResult.content}}
+        - {{fieldName}}: {{fieldValue}}
+        {{/each}}

@@ -1,0 +1,5 @@
+description: This function returns the fields and values visible on the application page
+
+target:
+  type: function
+  name: get_fields

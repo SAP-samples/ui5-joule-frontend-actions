@@ -1,0 +1,15 @@
+{
+	"name": "test.my.frontend.actions",
+	"version": "1.0.0",
+	"description": "UI5 Application: test.my.frontend.actions",
+	"author": "OpenUI5 Team",
+	"license": "Apache-2.0",
+	"scripts": {
+		"start": "ui5 serve --port 8080 -o index.html --accept-remote-connections --h2",
+		"start-cdn": "ui5 serve --port 8080 -o index-cdn.html --accept-remote-connections --h2"
+	},
+	"devDependencies": {
+		"@ui5/cli": "^4.0.26",
+		"ui5-middleware-livereload": "^3.1.4"
+	}
+}
