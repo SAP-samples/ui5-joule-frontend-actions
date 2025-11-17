@@ -22,7 +22,6 @@ sap.ui.define(["sap/ui/core/mvc/Controller", "sap/ui/core/Theming"], function (C
 					window.sap?.das?.webclient?.registerBridgeCallback(name, jouleCallbacks);
 				} else {
 					window.sapdas = window.sapdas || {};
-					window.sapdas.webclientBridge = jouleCallbacks;
 					window.sapdas.webclientPreregistration =  window.sapdas?.webclientPreregistration || {};
 					window.sapdas.webclientPreregistration[name] = jouleCallbacks;
 				}
