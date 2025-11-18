@@ -15,8 +15,7 @@ sap.ui.define([
 		},
 
 		// The setup code to register the frontend actions with Joule
-		// Note: in addition to that, the actions ALSO need to be deployed to the server as a yaml file, unfortunately.
-		
+		// Note: in addition to that, the actions ALSO need to be deployed to the server as a yaml file
 		initJoule: function () {
 
 			// helper function to register the frontend actions with Joule's web client bridge
@@ -25,13 +24,12 @@ sap.ui.define([
 				// case 1: FLP environment
 				if (FLPJouleBridge.isToBeUsed()) {
 					// in FLP, use FLPJouleBridge to communicate with Joule
-					const mbi = new FLPJouleBridge("test.my.frontend.actions"); // must be unique!!
-					mbi.setBridgeCallback(jouleCallbacks);
+					const jouleBridge = new FLPJouleBridge("test.my.frontend.actions"); // must be unique!!
+					jouleBridge.setBridgeCallback(jouleCallbacks);
 
 				// case 2: standalone app
 				} else {
 					// either connect to Joule directly or wait until it is loaded
-					// then register the frontend actions
 					if (window.sap?.das?.webclient?.registerBridgeCallbacks) {
 						window.sap?.das?.webclient?.registerBridgeCallbacks(name, jouleCallbacks);
 					} else {
@@ -44,8 +42,8 @@ sap.ui.define([
 
 			// define the frontend actions (name + callback function)
 			const jouleCallbacks = {
-				getFrontendActions: (_jouleContext) => { // invoked by Joule for each user prompt
-					return [ // return all actions, but we could filter based on conditions
+				getFrontendActions: (_jouleContext) => { // invoked by Joule for each triggered user prompt
+					return [ // return all actions, but can also be filtered dynamically based on certain conditions
 						{
 							frontend_action_name: 'test.my.frontend.actions.getFields.v1',
 							function: async (_jouleContext) => {
@@ -65,9 +63,17 @@ sap.ui.define([
 			registerWithJoule("test.my.frontend.actions", jouleCallbacks);
 		},
 
-		onExit: function () {
+		deregisterFromJoule: async function () {
 			// in case Joule exists, deregister
-			window.sap?.das?.webclient?.deregisterBridgeCallback("test.my.frontend.actions");
+			if (FLPJouleBridge.isToBeUsed()) {
+
+			} else {
+				window.sap?.das?.webclient?.deregisterBridgeCallback("test.my.frontend.actions");
+			}
+		},
+
+		onExit: function () {
+			this.deregisterFromJoule();
 		},
 
 
@@ -90,10 +96,13 @@ sap.ui.define([
 			if (themeName) {
 				Theming.setTheme(themeName);
 				result.success = true;
-				result.message = themeMap[themeName] || themeName;
+				result.message = themeMap[themeName] || themeName; // something like "dark"; will be inserted to a message placeholder; should normally be localized
 			}
 			return result;
 		},
+
+
+		// right now, Joule API calls only work when Joule is running in the same frame
 
 		onJouleTogglePress: function () {
 			window.sap?.das?.webclient?.toggle();

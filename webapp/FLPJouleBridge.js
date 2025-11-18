@@ -20,7 +20,7 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
                 throw new Error("FLPJouleBridge can only be used in FLP environment - only when FLPJouleBridge.isToBeUsed() returns true");
             }
             this.id = id || `FLPJouleBridge_${Math.random().toString(36).substring(2, 15)}`;
-            this._messageBrokerPromise = this._getMessageBroker(); // promise for the message broker
+            this._messageBrokerPromise = this._getMessageBrokerPromise(); // promise for the message broker
             this._jouleCallbacks = null;
         },
 
@@ -36,9 +36,12 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
          * Filters for Joule's web client ID and the frontend actions channel.
          *
          * Behavior:
-         *  - When messageName is "getFrontendActions", invokes the corresponding callback.
-         *  - When channelId matches frontendActionsChannel and messageName is
-         *    executeFrontendActionResponseMessage, resolves a pending "execute frontend action" request.
+         *  - When messageName is "getFrontendActions", invokes the corresponding callback,
+         *    retrieves available frontend actions, and publishes a "getFrontendActionsResponse"
+         *    message back to the Joule web client with the list of action names.
+         *  - When messageName is "executeFrontendAction", finds and executes the requested
+         *    frontend action by name, then publishes an "executeFrontendActionResponse" message
+         *    with the action result (or an error if the action was not found).
          *
          * @private
          * @param {string} clientId - Identifier of the client associated with the request/response cycle.
@@ -51,7 +54,7 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
             const OwnClientID = this.id;
             const JouleWebClientID = 'jouleWebClient';
             const FrontendActionsChannelID = 'com.sap.joule.flp.frontendactions';
-            const messageBroker = await this._getMessageBroker();
+            const messageBroker = await this._getMessageBrokerPromise();
             
 
             if (clientId !== JouleWebClientID) {
@@ -131,27 +134,21 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
         },
 
         /**
-         * Obtains and caches a connected SAP Fiori Launchpad MessageBroker service instance.
+         * Obtains and caches a promise resolving with a connected SAP Fiori Launchpad MessageBroker service instance.
          *
          * Behavior:
-         * 1. If the FLP is not available, returns a resolved Promise (undefined).
-         * 2. If a broker acquisition is already in progress or completed, returns the cached Promise.
-         * 3. Otherwise:
-         *    - Asynchronously loads 'sap/ushell/Container'.
-         *    - Retrieves the MessageBroker service via Container.getServiceAsync('MessageBroker').
-         *    - Establishes a client connection using the configured clientId.
-         *    - Subscribes the client to a predefined set of channels (events, messages, frontend actions).
-         *    - Resolves with the connected MessageBroker instance, or undefined on failure (errors are logged).
-         *
-         * Caching:
-         * The Promise (not just the resolved instance) is cached in this._messageBrokerPromise to prevent
-         * duplicate concurrent initialization attempts.
+         * 1. If a broker instance promise is already cached in this._messageBrokerPromise, returns it directly.
+         * 2. Otherwise:
+         *    - Retrieves the MessageBroker service via Container.getServiceAsync('MessageBroker')
+         *      and initially stores the Promise in this._messageBrokerPromise.
+         *    - Waits for the Promise to resolve to get the MessageBroker instance.
+         *    - Connects to the broker using this.id as the client ID.
+         *    - Subscribes to three predefined channels: events, message, and frontendactions.
          *
          * @private
-         * @returns {Promise<object|undefined>} A Promise resolving to the connected MessageBroker service object,
-         * or undefined if initialization failed or the environment does not support the required service.
+         * @returns {Promise<object>} A Promise resolving with the connected MessageBroker service object.
          */
-        _getMessageBroker: async function () { // TODO: handle calls while creation is in progress
+        _getMessageBrokerPromise: async function () {
             // return stored promise if available
             if (this._messageBrokerPromise) {
                 return this._messageBrokerPromise;
@@ -168,6 +165,7 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
             const clientConnectionCallback = (messageName, clientId, subscribedChannels) => {};
             await messageBroker.connect(this.id, clientConnectionCallback);
 
+            // subscribe to relevant channels
             const messageBrokerChannels = [{
                 channelId: 'com.sap.joule.flp.events',
                 version: '1.0'
@@ -178,9 +176,7 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
                 channelId: 'com.sap.joule.flp.frontendactions',
                 version: '1.0'
             }];
-
             await messageBroker.subscribe(this.id, messageBrokerChannels, this._messageBrokerMessageCallback.bind(this));
-            this._messageBrokerPromise = messageBroker;
         }
     });
 
