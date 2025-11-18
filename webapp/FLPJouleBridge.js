@@ -78,7 +78,7 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
                         'getFrontendActionsResponse',
                         [JouleWebClientID],
                         {
-                            correlationId: messageData.correlation_id,
+                            correlationId: messageData.correlationId,
                             availableFrontendActions: frontendActions
                         }
                     )
