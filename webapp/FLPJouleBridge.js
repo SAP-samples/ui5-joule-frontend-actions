@@ -79,7 +79,8 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
                         [JouleWebClientID],
                         {
                             correlationId: messageData.correlationId,
-                            availableFrontendActions: frontendActions
+                            // because of serialization, send only a string array with the action names
+                            availableFrontendActions: frontendActions.map(fa => fa.frontend_action_name)
                         }
                     )
                 }
@@ -91,7 +92,7 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
 
                 // execute action if found
                 if (frontendAction) {
-                    let actionResult = frontendAction.function(messageData.parameters);
+                    let actionResult = frontendAction.function(messageData.payload);
                     // allow for async functions
                     if (actionResult instanceof Promise) {
                         actionResult = await actionResult;
@@ -106,9 +107,7 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
                         [JouleWebClientID],
                         {
                             correlationId: messageData.correlationId,
-                            payload: {
-                                success: true
-                            }
+                            payload: actionResult
                         }
                     );
                 } else {
