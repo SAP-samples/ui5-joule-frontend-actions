@@ -73,6 +73,8 @@ As shown in the terminal after executing this command, the app is then running o
 
 > **IMPORTANT**: Joule will **not** load successfully when clicking the icon because Joule has strict rules (CSP settings) in which domains it may be embedded. `localhost` is not one of them. One solution is to deploy the app on *.ondemand.com, which is an allowed domain. There is also a way to [configure the allowlisted domains](https://help.sap.com/docs/joule/service-guide/custom-domain-configuration-for-joule?locale=en-US).
 
+> **ALSO IMPORTANT**: When Joule still gives you a full-screen error that sounds like "this domain is not trustworthy", then you may have to log in first on https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/webclient/playground.html?botName=<your_bot_name>
+
 
 ## Explanation of Joule-specific code sections
 

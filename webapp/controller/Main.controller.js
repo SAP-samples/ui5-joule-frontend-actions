@@ -1,4 +1,8 @@
-sap.ui.define(["sap/ui/core/mvc/Controller", "sap/ui/core/Theming"], function (Controller, Theming) {
+sap.ui.define([
+	"sap/ui/core/mvc/Controller",
+	"sap/ui/core/Theming",
+	"test/my/frontend/actions/FLPJouleBridge"
+], function (Controller, Theming, FLPJouleBridge) {
 	"use strict";
 
 	return Controller.extend("test.my.frontend.actions.controller.Main", {
@@ -16,14 +20,25 @@ sap.ui.define(["sap/ui/core/mvc/Controller", "sap/ui/core/Theming"], function (C
 		initJoule: function () {
 
 			// helper function to register the frontend actions with Joule's web client bridge
-			function registerBridgeCallback(name, jouleCallbacks) {
-				// register the frontend actions (either directly with Joule, or prepare and Joule will register them once it loads)
-				if (window.sap?.das?.webclient?.registerBridgeCallback) {
-					window.sap?.das?.webclient?.registerBridgeCallback(name, jouleCallbacks);
+			async function registerWithJoule(name, jouleCallbacks) {
+
+				// case 1: FLP environment
+				if (FLPJouleBridge.isToBeUsed()) {
+					// in FLP, use FLPJouleBridge to communicate with Joule
+					const mbi = new FLPJouleBridge("test.my.frontend.actions"); // must be unique!!
+					mbi.setBridgeCallback(jouleCallbacks);
+
+				// case 2: standalone app
 				} else {
-					window.sapdas = window.sapdas || {};
-					window.sapdas.webclientPreregistration =  window.sapdas?.webclientPreregistration || {};
-					window.sapdas.webclientPreregistration[name] = jouleCallbacks;
+					// either connect to Joule directly or wait until it is loaded
+					// then register the frontend actions
+					if (window.sap?.das?.webclient?.registerBridgeCallbacks) {
+						window.sap?.das?.webclient?.registerBridgeCallbacks(name, jouleCallbacks);
+					} else {
+						window.sapdas = window.sapdas || {};
+						window.sapdas.webclientPreregistration =  window.sapdas?.webclientPreregistration || {};
+						window.sapdas.webclientPreregistration[name] = jouleCallbacks;
+					}
 				}
 			}
 
@@ -47,7 +62,7 @@ sap.ui.define(["sap/ui/core/mvc/Controller", "sap/ui/core/Theming"], function (C
 			};
 
 			// register the frontend actions with Joule's web client bridge
-			registerBridgeCallback("test.my.frontend.actions", jouleCallbacks);
+			registerWithJoule("test.my.frontend.actions", jouleCallbacks);
 		},
 
 		onExit: function () {
@@ -73,7 +88,7 @@ sap.ui.define(["sap/ui/core/mvc/Controller", "sap/ui/core/Theming"], function (C
 				success: false
 			};
 			if (themeName) {
-				Theming.applyTheme(themeName);
+				Theming.setTheme(themeName);
 				result.success = true;
 				result.message = themeMap[themeName] || themeName;
 			}

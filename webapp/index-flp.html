@@ -59,6 +59,32 @@
 								trackUsageAnalytics: null
 							}
 						}
+					},
+					NavTargetResolution: {
+						config: {
+							enableClientSideTargetResolution: true
+						}
+					},
+					ClientSideTargetResolution: {
+						adapter: {
+							config: {
+								inbounds: {
+									"DASBot-ui5_frontend_actions": {
+										semanticObject: "DASBot",
+										action: "ui5_frontend_actions",
+										title: "DASBot ui5_frontend_actions",
+										signature: {
+											parameters: {},
+											additionalParameters: "allowed"
+										},
+										resolutionResult: {
+											applicationType: "URL",
+											url: "./"
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			};
