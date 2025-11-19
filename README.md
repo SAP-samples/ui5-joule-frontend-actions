@@ -212,6 +212,7 @@ While this sample is pure JavaScript, the `/types` folder contains experimental 
 No known code issues.
 
 ### Joule Loading Requirements
+- Joule refuses running on non-allowlisted domains, which includes localhost. An easy workaround is to modify `/etc/hosts`as described above, so a subdomain of `.sap.corp` can be entered in the browser to access localhost.
 - The user must be logged in to Joule, e.g. on https://<<your_das_tenant_URL>>.sapdas.cloud.sap/resources/webclient/playground.html?botName=ui5_frontend_actions (adapt bot name if you chnged it, probably also works without a specific bot).
 - **Standalone mode** (`index-standalone.html`): The Joule tenant URL must be properly configured in the script tag
 - **FLP mode** (`index-flp.html`): The Joule tenant URL must be configured in the `bootstrapPlugins` section
