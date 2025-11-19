@@ -1,35 +1,81 @@
-sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log) {
+sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject) {
     "use strict";
 
-    const messageConstants = {
-        getFrontendActionsMessage: 'getFrontendActions',
-        executeFrontendActionMessage: 'executeFrontendAction',
-    };
+    const messageBrokerChannels = [{
+        channelId: 'com.sap.joule.flp.events',
+        version: '1.0'
+    }, {
+        channelId: 'com.sap.joule.flp.message',
+        version: '1.0'
+    }, {
+        channelId: 'com.sap.joule.flp.frontendactions',
+        version: '1.0'
+    }];
 
-    const isToBeUsed = function () {
+    const needsToBeUsed = function () {
         // synchronously find out if we are running in FLP (works also in iframe)
         const Container = sap.ushell?.Container /* needed until UI5 1.119 */ || sap.ui.require("sap/ushell/Container" /* single string argument checks whether loaded */);
         return Container !== undefined;
     };
 
+
+    /**
+     * Class to facilitate communication between Applications and SAP Joule via SAP Fiori Launchpad for registering frontend actions.
+     *
+     * @class
+     * @public
+     * @extends sap.ui.base.Object
+     */
     const FLPJouleBridge = BaseObject.extend("test.my.frontend.actions.FLPJouleBridge", {
 
+        /**
+         * Constructor for FLPJouleBridge.
+         *
+         * @param {string} id the client ID to be used when connecting to the FLP MessageBroker (must be unique across applications)
+         */
         constructor: function (id) {
             BaseObject.apply(this, arguments);
-            if (!isToBeUsed() ) {
-                throw new Error("FLPJouleBridge can only be used in FLP environment - only when FLPJouleBridge.isToBeUsed() returns true");
+            if (!needsToBeUsed() ) {
+                throw new Error("FLPJouleBridge can only be used in FLP environment - only when FLPJouleBridge.needsToBeUsed() returns true");
             }
             this.id = id || `FLPJouleBridge_${Math.random().toString(36).substring(2, 15)}`;
             this._messageBrokerPromise = this._getMessageBrokerPromise(); // promise for the message broker
             this._jouleCallbacks = null;
         },
 
+        /**
+         * Sets the bridge callback functions to handle frontend action requests from Joule.
+         *
+         * @param {object} jouleCallbacks An object containing callback functions for Joule frontend actions.
+         * @returns {Promise<void>} A Promise that resolves when the bridge callback has been set.
+         * @throws {Error} If the bridge callback is already set or if the message broker is disconnected.
+         */
         setBridgeCallback: async function (jouleCallbacks) {
             if (this._jouleCallbacks) {
                 throw new Error("Bridge callback already set - can only be set once per instance");
             }
+            if (!this._messageBrokerPromise) {
+                throw new Error("Message broker already disconnected - cannot set bridge callback");
+            }
             this._jouleCallbacks = jouleCallbacks;
         },
+
+        /**
+         * Disconnects the FLPJouleBridge from the MessageBroker and unsubscribes from all channels.
+         * Must be called to clean up resources when the bridge is no longer needed.
+         * It cannot be re-connected later.
+         *
+         * @returns {Promise<void>} A Promise that resolves when the bridge has been disconnected.
+         */
+        disconnect: async function () {
+            const messageBroker = await this._getMessageBrokerPromise();
+            await messageBroker.unsubscribe(this.id, messageBrokerChannels);
+            await messageBroker.disconnect(this.id);
+            this._messageBrokerPromise = null;
+        },
+
+
+        // internal methods
 
         /**
          * Callback invoked for every message received from the message broker.
@@ -166,21 +212,20 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"], function (BaseObject, Log)
             await messageBroker.connect(this.id, clientConnectionCallback);
 
             // subscribe to relevant channels
-            const messageBrokerChannels = [{
-                channelId: 'com.sap.joule.flp.events',
-                version: '1.0'
-            }, {
-                channelId: 'com.sap.joule.flp.message',
-                version: '1.0'
-            }, {
-                channelId: 'com.sap.joule.flp.frontendactions',
-                version: '1.0'
-            }];
             await messageBroker.subscribe(this.id, messageBrokerChannels, this._messageBrokerMessageCallback.bind(this));
+            return Promise.resolve(messageBroker);
         }
     });
 
-    FLPJouleBridge.isToBeUsed = isToBeUsed;
+
+    /**
+     * Static method to determine whether FLPJouleBridge is to be used in the current environment.
+     *
+     * @static
+     * @public
+     * @returns {boolean} True if FLPJouleBridge needs to be used for communication with Joule (running in FLP environment); false otherwise.
+     */
+    FLPJouleBridge.needsToBeUsed = needsToBeUsed;
     
     return FLPJouleBridge;
 });

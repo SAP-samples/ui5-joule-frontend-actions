@@ -44,22 +44,39 @@ cd joule
 joule deploy --compile --name ui5_frontend_actions
 ```
 
-### 4. Adapt the HTML file which loads Joule
+### 4. Adapt the HTML files which load Joule
 
-To be active in the page, the Joule web client needs to be loaded. This could be done by a shell embedding the applications, like SAP Fiori Launchpad. But in this standalone application, we [load Joule explicitly using a script tag](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/integrating-joule-using-script) in `index.html` / `index-cdn.html` (it does not matter which one you launch in the browser, but the latter usually loads faster, as it does not use the local dev resources of UI5). 
+This sample application demonstrates two deployment scenarios:
+
+#### Standalone Application
+In the standalone variant (`index-standalone.html`), the Joule web client is [loaded explicitly using a script tag](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/integrating-joule-using-script).
 
 In case you changed the assistant name `ui5_frontend_actions` to something else when deploying the assistant, then this term also needs to be changed in the script tag.
 
-At minimum, replace `<your_das_tenant_URL>` in the script tag of `index.html` or `index-cdn.html`:
+At minimum, replace `<your_das_tenant_URL>` in the script tag of `index-standalone.html`:
 
 ```html
-		<script src="https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/public/webclient/bootstrap.js"
-			data-bot-name="ui5_frontend_actions"
-			data-expander-type="DEFAULT"
-		></script>
+<script src="https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/public/webclient/bootstrap.js"
+    data-bot-name="ui5_frontend_actions"
+    data-expander-type="DEFAULT"
+></script>
 ```
 
 The `data-expander-type` attribute determines what kind of icon/button opens the Joule web client.
+
+#### SAP Fiori Launchpad Integration
+In the FLP variant (`index-flp.html`), Joule is loaded via the SAP Fiori Launchpad's bootstrap plugin mechanism. Note that this configuration and bootstrapping of the FLP sandbox is only meant for local development! In productive systems, the app component is loaded directly and the html file is not used. Configure the Digital Assistant plugin in the `sap-ushell-config`:
+
+```javascript
+bootstrapPlugins: {
+    DigitalAssistant: {
+        component: "sap.das.webclientplugin.s4",
+        url: "https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/public/webclient/s4",
+    }
+}
+```
+
+Replace `<your_das_tenant_URL>` with your Joule tenant URL for testing. The FLP variant uses the `FLPJouleBridge` class to communicate with Joule via the FLP MessageBroker. Note: the MessageBroker API is SAP-internal, not publicly released for customer apps.
 
 ## Run the App
 
@@ -69,12 +86,51 @@ To run the app in watch mode:
 npm start
 ```
 
-As shown in the terminal after executing this command, the app is then running on http://localhost:8080/index.html / http://localhost:8080/index-cdn.html. A browser window with this URL should automatically open and you should see the purple Joule icon in the bottom right.
+As shown in the terminal after executing this command, the app is then running on:
+- http://localhost:8080/index.html (launcher page with buttons to choose between variants)
+- http://localhost:8080/index-standalone.html (standalone variant)
+- http://localhost:8080/index-flp.html (SAP Fiori Launchpad variant)
 
-> **IMPORTANT**: Joule will **not** load successfully when clicking the icon because Joule has strict rules (CSP settings) in which domains it may be embedded. `localhost` is not one of them. One solution is to deploy the app on *.ondemand.com, which is an allowed domain. There is also a way to [configure the allowlisted domains](https://help.sap.com/docs/joule/service-guide/custom-domain-configuration-for-joule?locale=en-US).
+A browser window should automatically open. When you then navigate to the standalone version, you should see the purple Joule icon in the bottom right corner. When launching the FLP variant, Joule is accessible via the FLP shell bar.
+
+> **IMPORTANT**: Joule will **not** load successfully on localhost when clicking the icon because Joule has strict rules (CSP settings) in which domains it may be embedded. `localhost` is not one of them. The most straightforward way for local testing is to override the computer's DNS resolution:
+ - On Mac:
+   - `sudo nano /etc/hosts` and add the following entries:
+     - 127.0.0.1  myhost.sap.corp
+     - ::1  myhost.sap.corp
+   - `sudo dscacheutil -flushcache`
+   - `sudo killall -HUP mDNSResponder`
+   - Then open the app by opening http://myhost.sap.corp:8080/ in your browser.
+Other options are to deploy the app on *.ondemand.com, which is an allowed domain, or to [configure the allowlisted domains](https://help.sap.com/docs/joule/service-guide/custom-domain-configuration-for-joule?locale=en-US).
 
 > **ALSO IMPORTANT**: When Joule still gives you a full-screen error that sounds like "this domain is not trustworthy", then you may have to log in first on https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/webclient/playground.html?botName=<your_bot_name>
 
+
+## Application Architecture
+
+### Dual-Mode Support: Standalone and FLP
+
+This application supports two integration modes with Joule, automatically detecting and choosing the appropriate communication mechanism:
+
+1. **Standalone Mode**: Direct integration with the Joule web client API
+2. **FLP Mode**: Integration via the `FLPJouleBridge` class using the FLP MessageBroker
+
+The `Main.controller.js` automatically detects the environment and uses the appropriate integration method in the `initJoule()` function.
+
+### FLPJouleBridge
+
+The `FLPJouleBridge.js` class facilitates communication between UI5 applications and SAP Joule when running inside SAP Fiori Launchpad. Key features:
+
+- **Automatic Detection**: The static `FLPJouleBridge.needsToBeUsed()` method checks if the app is running in an FLP environment
+- **MessageBroker Communication**: Uses FLP's MessageBroker service to exchange messages with Joule via three channels:
+  - `com.sap.joule.flp.events` - Event notifications
+  - `com.sap.joule.flp.message` - General messaging
+  - `com.sap.joule.flp.frontendactions` - Frontend action execution
+- **Lifecycle Management**: Provides `setBridgeCallback()` to register action handlers and `disconnect()` for cleanup
+- **Action Registration**: Handles the `getFrontendActions` request from Joule and returns available actions
+- **Action Execution**: Receives `executeFrontendAction` requests, executes the corresponding function, and returns results
+
+When running in FLP, the bridge serializes action names (not function references) to Joule and maintains the action registry for execution.
 
 ## Explanation of Joule-specific code sections
 
@@ -100,7 +156,16 @@ Note that `scripting_type: handlebars` is required to make this templating work.
 
 ### The Frontend Actions Implementation
 
-In `Main.controller.js`, there is the `initJoule` function, which sets up the connection with the Joule web client and declares the available frontend functions. The array of actions
+In `Main.controller.js`, the `initJoule` function sets up the connection with Joule and declares the available frontend functions. The function implements two integration variants:
+
+#### Case 1: FLP Environment
+When `FLPJouleBridge.needsToBeUsed()` returns true, the application creates an `FLPJouleBridge` instance and registers callbacks via `setBridgeCallback()`. The bridge handles all communication with Joule through the FLP MessageBroker.
+
+#### Case 2: Standalone Environment
+When running standalone, the application registers directly with the Joule web client API using `window.sap.das.webclient.registerBridgeCallbacks()`. If Joule hasn't loaded yet, it uses a pre-registration mechanism via `window.sapdas.webclientPreregistration`.
+
+#### Action Registration
+The array of actions is used in both variants:
 
 ```js
 [ // return all actions, but we could filter based on conditions
@@ -118,15 +183,15 @@ In `Main.controller.js`, there is the `initJoule` function, which sets up the co
 ]
 ```
 
-connects the function names and parameters we have declared in the Joule capability above with concrete UI5 controller methods `getFields()` and `setTheme(...)`. This array is returned by the `getFrontendActions` callback function, which is registered with Joule as part of the `jouleCallbacks` and invoked every time the user sends a prompt to Joule. This allows the app to decide at the exact moment the prompt is triggered which actions are currently available. Scenarios which require unavailable functions are not available in Joule when this user prompt is handled.
+It connects the function names and parameters declared in the Joule capability with concrete UI5 controller methods `getFields()` and `setTheme(...)`. This array is returned by the `getFrontendActions` callback function, which is invoked every time the user sends a prompt to Joule. This allows the app to dynamically decide which actions are currently available. Scenarios requiring unavailable functions are not offered in Joule when the user prompt is handled.
 
-The `registerBridgeCallback` encapsulates the check whether Joule is already loaded or not, as there are different ways of setting up the connection in both situations.
+The `deregisterFromJoule()` method in the controller's `onExit()` ensures proper cleanup, disconnecting the bridge in FLP mode or deregistering callbacks in standalone mode.
 
 Further down, the controller methods `setTheme` and `getFields` implement the actual action inside the UI5 application - setting the theme and extracting data. `getFields` simply returns a map, `setTheme` returns an object with a `success` flag and a `message`. Note that the returned object is available as `.content` property of the result variable in the Joule function definition. This means you get it by accessing `frontendActionResult.content`, not by referring to `frontendActionResult` itself.
 
-Note that the actions are not necessarily good choices to be implemented on application level, nor
-
 ### Bonus: API interaction with the Joule web client
+
+**Note**: The APIs demonstrated below currently only work when Joule runs in the same frame as the application (standalone mode). They do not work via `FLPJouleBridge` in FLP environments where Joule and the app run in different iframes.
 
 At the bottom of `Main.controller.js` you can find three methods that demonstrate how to interact with the Joule web client via API. They are connected to the respective header button in `Main.view.xml`.
 
@@ -145,7 +210,15 @@ While this sample is pure JavaScript, the `/types` folder contains experimental 
 ## Known Issues
 
 No known code issues.
-In this application, Joule only works when the Joule tenant URL is properly filled in the used HTML file and the domain of the hosting UI5 application is contained in the allowlist applied by Joule (both as explained earlier).
+
+### Joule Loading Requirements
+- The user must be logged in to Joule, e.g. on https://<<your_das_tenant_URL>>.sapdas.cloud.sap/resources/webclient/playground.html?botName=ui5_frontend_actions (adapt bot name if you chnged it, probably also works without a specific bot).
+- **Standalone mode** (`index-standalone.html`): The Joule tenant URL must be properly configured in the script tag
+- **FLP mode** (`index-flp.html`): The Joule tenant URL must be configured in the `bootstrapPlugins` section
+- The hosting domain must be in Joule's allowlist (as explained earlier in the setup section)
+
+### API Limitations
+The Joule web client API methods (`toggle()`, `toggleNavigationPanel()`, `sendMessage()`) only work when Joule runs in the same frame as the application. In FLP environments where the app runs in an iframe, these direct API calls are not available.
 
 ## How to obtain support
 [Create an issue](https://github.com/SAP-samples/ui5-joule-frontend-actions/issues) in this repository if you find a bug or have questions about the content. But note that this is not a Joule or Joule web client support forum, but rather is provided by the UI5 team, which is a *user* of Joule like you are.
