@@ -5,6 +5,8 @@
 ## Description
 This sample UI5 application demonstrates how frontend actions can be defined for the AI assistant SAP Joule. Frontend actions allow for direct interaction between Joule and the client-side application UI.
 
+![Screenshot showing a UI5 application with issue ticket data and a Joule frame on the right where the user has asked for "all fields in the page" and Joule has responded with fields and values](image.png)
+
 ## Requirements
 
 1. A current [Node.js](https://nodejs.org/) version (18.x or later) along with [npm](https://www.npmjs.com/) (or alternative package manager) for dependency management.
