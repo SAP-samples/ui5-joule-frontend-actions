@@ -9,7 +9,7 @@ This sample UI5 application demonstrates how frontend actions can be defined for
 
 1. A current [Node.js](https://nodejs.org/) version (18.x or later) along with [npm](https://www.npmjs.com/) (or alternative package manager) for dependency management.
 
-2. The [Joule CLI tool](https://help.sap.com/docs/joule/joule-development-guide/install-and-update-command-line-interface) (as of now only available SAP-internally: `npm install -g @sap/sapdas-cli`)
+2. The [Joule CLI tool](https://help.sap.com/docs/joule/joule-development-guide/install-and-update-command-line-interface) (currently only available internally at SAP: `npm install -g @sap/sapdas-cli`)
 
 3. Access to a [Joule service instance](https://help.sap.com/docs/joule/joule-development-guide/create-joule-subscription-and-instance). You need to have a user and the respective access information (URLs, client-ID, client-secret, see below).
 
@@ -138,7 +138,7 @@ When running in FLP, the bridge serializes action names (not function references
 
 #### General Structure
 
-Joule capabilities are developed and deployed [as described in the Joule development documentation](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/build-capability?locale=en-US). The assistant and capability in this repository are are intentionally minimal and only focus on the frontend actions.
+Joule capabilities are developed and deployed [as described in the Joule development documentation](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/build-capability?locale=en-US). The assistant and capability in this repository are intentionally minimal and only focus on the frontend actions.
 
 In the `/joule` folder, there is a `da.sapdas.yaml` file defining a Joule assistant with one capability, `my_capability`, which resides in the folder with the same name and has one `capability.sapdas.yaml` file and folders named `scenarios`, `functions` and `i18n` (these files and folders need to be named like this by convention).
 
@@ -201,14 +201,14 @@ In `Main.controller.js`, the `initJoule` function sets up the connection with Jo
 #### Case 1: FLP Environment
 When `FLPJouleBridge.needsToBeUsed()` returns true, the application creates an `FLPJouleBridge` instance and registers callbacks via `setBridgeCallback()`. The bridge handles all communication with Joule through the FLP MessageBroker. **Note**: this FLPJouleBridge is (like the entire sample application) not official, supported SAPUI5 code, but sample code using SAP-internal (non-public) APIs.
 
-While in regular FLP scenarios FLP, Joule and the SAPUI5 application often run inside the same frame and hence the standalone way of communication with Joule as described below would also work, it is recommended to still use the MessageBroker way of communication to be ready for all usage scenarios including Workzone.
+While in regular FLP scenarios Joule, FLP and the SAPUI5 application often run inside the same frame and hence the standalone way of communication with Joule as described below would also work, it is recommended to still use the MessageBroker way of communication to be ready for all usage scenarios including Workzone.
 
 #### Case 2: Standalone Environment
 When running standalone, loaded from its own `index.html` file with no shell embedding it, the application registers directly with the Joule web client API using `window.sap.das.webclient.registerBridgeCallbacks()`. If Joule hasn't loaded yet, it uses a pre-registration mechanism via `window.sapdas.webclientPreregistration`.
 
 To actually load Joule, the application has to load Joule explicitly using a `script` tag.
 ```html
-<script src="https://<your_das_tenant_URL>.eu12.sapdas.cloud.sap/resources/public/webclient/bootstrap.js"
+<script src="https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/public/webclient/bootstrap.js"
     data-bot-name="ui5_frontend_actions"
     data-expander-type="DEFAULT">
 </script>
@@ -259,13 +259,13 @@ While this sample is pure JavaScript, the `/types` folder contains experimental 
 
 ## Known Issues
 
-In the FLP scenario, the default assistant when Joule opens is the standard SAP assistant, which does NOT have the definied frontend actions. Use Joule's header menu button, then "Change Assistant" to switch to your own bot (named "UI5 Frontend Actions" or whatever bot name you chose).
+In the FLP scenario, the default assistant when Joule opens is the standard SAP assistant, which does NOT have the defined frontend actions. Use Joule's header menu button, then "Change Assistant" to switch to your own bot (named "UI5 Frontend Actions" or whatever bot name you chose).
 
 No known code issues.
 
 ### Joule Loading Requirements
-- Joule refuses running on non-allowlisted domains, which includes localhost. An easy workaround is to modify `/etc/hosts`as described above, so a subdomain of `.sap.corp` can be entered in the browser to access localhost.
-- The user must be logged in to Joule, e.g. on https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/webclient/playground.html?botName=ui5_frontend_actions (adapt bot name if you chnged it, probably also works without a specific bot).
+- Joule refuses running on non-allowlisted domains, which includes localhost. An easy workaround is to modify `/etc/hosts` as described above, so a subdomain of `.sap.corp` can be entered in the browser to access localhost.
+- The user must be logged in to Joule, e.g. on https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/webclient/playground.html?botName=ui5_frontend_actions (adapt bot name if you changed it, probably also works without a specific bot). Otherwise the following message may appear: "Your domain is not trusted. Please contact your system administrator."
 - **Standalone mode** (`index-standalone.html`): The Joule tenant URL must be properly configured in the script tag
 - **FLP mode** (`index-flp.html`): The Joule tenant URL must be configured in the `bootstrapPlugins` section
 - The hosting domain must be in Joule's allowlist (as explained earlier in the setup section)
