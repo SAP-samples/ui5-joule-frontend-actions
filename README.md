@@ -259,6 +259,8 @@ While this sample is pure JavaScript, the `/types` folder contains experimental 
 
 ## Known Issues
 
+In the FLP scenario, the default assistant when Joule opens is the standard SAP assistant, which does NOT have the definied frontend actions. Use Joule's header menu button, then "Change Assistant" to switch to your own bot (named "UI5 Frontend Actions" or whatever bot name you chose).
+
 No known code issues.
 
 ### Joule Loading Requirements
