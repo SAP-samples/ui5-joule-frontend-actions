@@ -11,7 +11,7 @@ This sample UI5 application demonstrates how frontend actions can be defined for
 
 1. A current [Node.js](https://nodejs.org/) version (18.x or later) along with [npm](https://www.npmjs.com/) (or alternative package manager) for dependency management.
 
-2. The [Joule CLI tool](https://help.sap.com/docs/joule/joule-development-guide/install-and-update-command-line-interface) (currently only available internally at SAP: `npm install -g @sap/sapdas-cli`)
+2. The [Joule CLI tool](https://help.sap.com/docs/joule/joule-development-guide/install-and-update-command-line-interface) (currently only available internally at SAP: `npm install -g @sap/joule-cli`)
 
 3. Access to a [Joule service instance](https://help.sap.com/docs/joule/joule-development-guide/create-joule-subscription-and-instance). You need to have a user and the respective access information (URLs, client-ID, client-secret, see below).
 
