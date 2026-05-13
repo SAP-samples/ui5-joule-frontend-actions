@@ -16,4 +16,13 @@ node_modules/
 
 .DS_Store
 .env
+.env.*
 tmp/
+
+# Secrets & credentials
+*.pem
+*.key
+*.p12
+credentials.json
+secrets.json
+.npmrc.local
