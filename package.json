@@ -9,8 +9,8 @@
 		"lint:lockfile": "lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --allowed-schemes \"https:\""
 	},
 	"devDependencies": {
-		"@ui5/cli": "4.0.30",
+		"@ui5/cli": "4.0.55",
 		"lockfile-lint": "5.0.0",
-		"ui5-middleware-livereload": "3.1.4"
+		"ui5-middleware-livereload": "3.3.1"
 	}
 }
