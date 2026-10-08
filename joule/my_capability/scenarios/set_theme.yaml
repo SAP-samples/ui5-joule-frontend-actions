@@ -1,0 +1,9 @@
+description: This function sets the visual theme of the current application to a light, dark or high-contrast one.
+
+slots:
+  - name: theme_name
+    description: Name of the theme to be set; this can be either "sap_horizon" for a light theme, or "sap_horizon_dark" for a dark theme, or "sap_hcb" for a high contrast accessibility theme.
+
+target:
+  type: function
+  name: set_theme

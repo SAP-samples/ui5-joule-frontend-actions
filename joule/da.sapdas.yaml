@@ -1,0 +1,5 @@
+schema_version: 1.4.0 #DT Spec version
+name: DigitalAssistant
+capabilities:
+  - type: local
+    folder: ./my_capability

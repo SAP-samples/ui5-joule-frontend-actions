@@ -1,0 +1,16 @@
+{
+	"name": "test.my.frontend.actions",
+	"version": "1.0.0",
+	"description": "UI5 Application: test.my.frontend.actions",
+	"author": "OpenUI5 Team",
+	"license": "Apache-2.0",
+	"scripts": {
+		"start": "ui5 serve --port 8080 -o index.html --accept-remote-connections --h2",
+		"lint:lockfile": "lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --allowed-schemes \"https:\""
+	},
+	"devDependencies": {
+		"@ui5/cli": "4.0.70",
+		"lockfile-lint": "5.0.1",
+		"ui5-middleware-livereload": "3.4.0"
+	}
+}
