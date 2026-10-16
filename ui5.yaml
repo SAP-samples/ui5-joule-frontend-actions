@@ -3,7 +3,7 @@ metadata:
   name: test.my.frontend.actions
 type: application
 framework:
-  name: OpenUI5
+  name: SAPUI5
   version: "1.153.0"
   libraries:
     - name: sap.m

@@ -8,6 +8,11 @@
 		<script>
 			window["sap-ushell-config"] = {
 				defaultRenderer: "fiori2",
+				ushell: {
+					shellBar: {
+						enabled: true // Required since 1.143: Joule plugin targets the new ShellBar web component
+					}
+				},
 				renderers: {
 					fiori2: {
 						componentData: {
@@ -22,6 +27,9 @@
 					DigitalAssistant: {
 						component: "sap.das.webclientplugin.s4",
 						url: "https://uics-joule.eu12.sapdas.cloud.sap/resources/public/webclient/s4",
+						config: {
+							defaultBotName: ""
+						}
 					}
 				},
 				applications: {

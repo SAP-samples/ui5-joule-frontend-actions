@@ -80,7 +80,7 @@ At minimum, replace `<your_das_tenant_URL>` in the script tag of `index-standalo
 The `data-expander-type` attribute determines what kind of icon/button opens the Joule web client.
 
 #### SAP Fiori Launchpad Integration
-In the FLP variant (`index-flp.html`), Joule is loaded via the SAP Fiori Launchpad's bootstrap plugin mechanism. Note that this configuration and bootstrapping of the FLP sandbox is only meant for local development! In productive systems, the app component is loaded directly and the html file is not used. Configure the Digital Assistant plugin in the `sap-ushell-config`:
+In the FLP variant (`index-flp.html`), Joule is loaded via the SAP Fiori Launchpad's bootstrap plugin mechanism. Note that this configuration and bootstrapping of the FLP sandbox is only meant for local development! In productive systems, the app component is loaded directly and the html file is not used. In the sandbox HTML file configure the Digital Assistant plugin in the `sap-ushell-config`:
 
 ```javascript
 bootstrapPlugins: {
@@ -101,6 +101,8 @@ To run the app in watch mode:
 npm start
 ```
 
+**CAVEAT: things are not so easy - make sure to read the entire section below to make Joule inside the locally run app actually work!**
+
 As shown in the terminal after executing this command, the app is then running on:
 - http://localhost:8080/index.html (launcher page with buttons to choose between variants)
 - http://localhost:8080/index-standalone.html (standalone variant)
@@ -110,7 +112,7 @@ A browser window should automatically open. When you then navigate to the standa
 
 ***But...:***
 
-> **IMPORTANT**: Joule will **not** load successfully on localhost because Joule has strict rules (CSP settings) in which domains it may be embedded. `localhost` is not one of them. The most straightforward way for local testing is to override the computer's DNS resolution:
+> **IMPORTANT**: content inside the Joule popup will **not** load successfully on localhost because Joule has strict rules (CSP settings) in which domains it is allowed to be embedded. `localhost` is not one of them. The most straightforward way for local testing is to override the computer's DNS resolution:
  - On Mac:
    - `sudo nano /etc/hosts` and add the following entries:
      - `127.0.0.1  myhost.sap.corp`
@@ -120,28 +122,26 @@ A browser window should automatically open. When you then navigate to the standa
    - Then open the app by opening http://myhost.sap.corp:8080/index.html in your browser. If it does not work, try https://myhost.sap.corp:8080/index.html and accepting the missing certificate). 
 Other options are to deploy the app on *.ondemand.com, which is an allowed domain, or to [configure the allowlisted domains](https://help.sap.com/docs/joule/service-guide/custom-domain-configuration-for-joule?locale=en-US).
 
-> **ALSO IMPORTANT**: When Joule still gives you a full-screen error that sounds like "this domain is not trustworthy", then you may have to log in first on https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/webclient/playground.html?botName=<your_bot_name>
+> **IMPORTANT for the FLP sandbox version:** depending on its exact version of the Joule plugin for FLP relies on the SAP default assistant (with the name `sap_digital_assistant`) being present. When not present, the Joule popup frame will show a "Something went wrong - The service is currently unavailable..." error at the bottom. This error only occurs in the FLP version of the app, not in the standalone version. A workaround that works with all versions of the FLP plugin is to simply deploy your own assistant also under this official name: `joule deploy --compile --name sap_digital_assistant`. Note that this might override the official SAP assistant of this Joule instance, so only do it when that assistant is truly not there - you can use `joule list` to see which assistants are currently deployed. In newer versions of the Joule FLP plugin, it is possible to configure that the standard assistant should NOT be used. To do this, the entry `config: { defaultBotName: "" }` needs to be added to `sap-ushell-config` in the `index-flp.html` file within the `bootstrapPlugins.DigitalAssistant` category. This has already been done in this repository. In case this causes issues with older Joule versions it's worth to try and remove it.
+
+> **ALSO IMPORTANT**: When Joule gives you a full-screen error that sounds like "this domain is not trustworthy", then you may have to log in first on https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/webclient/playground.html?botName=<your_bot_name>
 
 
 ## Application Architecture
 
-### JouleConnector — Unified Registration
+### Generic Frontend Actions (provided by the framework)
 
-This application uses `JouleConnector` from the `sap.ui.joule.frontend` library to register its frontend actions. The connector:
+When the `sap.ui.joule.frontend` library is loaded, it automatically registers generic UI introspection actions (like describing the visible UI elements, setting field values, or executing buttons). These work with any SAPUI5 app without app-specific code. Your app benefits from these automatically as soon as it loads the `sap.ui.joule.frontend` library.
 
-- **Auto-detects** whether the app runs in FLP or standalone
-- **Handles all communication** with the Joule web client (via MessageBroker in FLP, via direct API in standalone)
-- **Provides a single API**: `registerActions()` and `disconnect()`
+### JouleConnector — Registration of custom Frontend Actions
 
-No separate bridge class, no environment branching in your application code.
+This application uses `JouleConnector` from the `sap.ui.joule.frontend` library to register its frontend actions using its ssimple  `registerActions()` API. 
 
-### Generic Actions (provided by the framework)
+> Behind the scenes, the connector detects whether the app runs in FLP or standalone and handles all communication with the Joule web client (via MessageBroker in FLP, via direct API in standalone).
 
-When the `sap.ui.joule.frontend` library is loaded, it automatically registers generic UI introspection actions (like describing the visible UI elements, setting field values, or executing buttons). These work with any SAPUI5 app without app-specific code. Your app benefits from these automatically.
+### App-Specific custom Frontend Actions
 
-### App-Specific Actions
-
-This sample registers two custom actions on top of the generic ones:
+This sample registers two custom actions which are then available on top of the generic ones:
 
 1. **`setTheme`** — switches the application theme (light/dark/accessibility). Demonstrates the Joule-to-app direction.
 2. **`getTicketTimeline`** — returns structured conversation data from the ticket. Demonstrates why custom actions are valuable: they provide semantically meaningful business data that generic UI scraping cannot deliver.
@@ -259,24 +259,21 @@ While this sample is pure JavaScript, the `/types` folder contains experimental 
 
 ## Known Issues
 
-In the FLP scenario, the default assistant when Joule opens is the standard SAP assistant, which does NOT have the defined frontend actions. Use Joule's header menu button, then "Change Assistant" to switch to your own bot (named "UI5 Frontend Actions" or whatever bot name you chose).
-
 No known code issues.
 
 ### Joule Loading Requirements
 - Joule refuses running on non-allowlisted domains, which includes localhost. An easy workaround is to modify `/etc/hosts` as described above, so a subdomain of `.sap.corp` can be entered in the browser to access localhost.
 - The user must be logged in to Joule, e.g. on https://<your_das_tenant_URL>.sapdas.cloud.sap/resources/webclient/playground.html?botName=my_frontend_actions (adapt bot name if you changed it, probably also works without a specific bot). Otherwise the following message may appear: "Your domain is not trusted. Please contact your system administrator."
 - **Standalone mode** (`index-standalone.html`): The Joule tenant URL must be properly configured in the script tag
-- **FLP mode** (`index-flp.html`): The Joule tenant URL must be configured in the `bootstrapPlugins` section
-- The hosting domain must be in Joule's allowlist (as explained earlier in the setup section)
+- **FLP mode** (`index-flp.html`): The Joule tenant URL must be configured in the `bootstrapPlugins` section, plus the default bot `sap_digital_assistant` may need to be deployed or disabled (see above).
 
 ## How to obtain support
 [Create an issue](https://github.com/SAP-samples/ui5-joule-frontend-actions/issues) in this repository if you find a bug or have questions about the content. But note that this is not a Joule or Joule web client support forum, but rather is provided by the UI5 team, which is a *user* of Joule like you are.
  
-For additional support, [ask a question in SAP Community](https://answers.sap.com/questions/ask.html).
+For additional support on Joule in general, [ask a question in SAP Community](https://answers.sap.com/questions/ask.html).
 
 ## Contributing
 If you wish to contribute code, propose fixes or enhancements, please send a pull request. Due to legal reasons, contributors will be asked to accept a DCO when they create the first pull request to this project. This happens in an automated fashion during the submission process. SAP uses [the standard DCO text of the Linux Foundation](https://developercertificate.org/).
 
 ## License
-Copyright (c) 2025 SAP SE or an SAP affiliate company. All rights reserved. This project is licensed under the Apache Software License, version 2.0 except as noted otherwise in the [LICENSE](LICENSE) file.
+Copyright (c) 2026 SAP SE or an SAP affiliate company. All rights reserved. This project is licensed under the Apache Software License, version 2.0 except as noted otherwise in the [LICENSE](LICENSE) file.
