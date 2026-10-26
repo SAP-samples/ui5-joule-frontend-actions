@@ -20,30 +20,32 @@ sap.ui.define([
 		// Note: in addition to the code registration here, the actions ALSO need to be deployed
 		// to the Joule backend as YAML files (see the joule/ folder).
 		initJoule: function () {
-			var that = this;
-
 			// Create connector — auto-detects FLP vs. standalone environment
 			this._jouleConnector = new JouleConnector("test.my.frontend.actions");
 
 			// Register app-specific frontend actions.
-			// This callback is invoked by Joule for each user prompt to get the currently available actions.
-			// You can return different sets of actions depending on the current app state.
-			this._jouleConnector.registerActions(function (_jouleContext) {
-				return [
-					{
-						frontend_action_name: "test.my.frontend.actions.setTheme",
-						function: async function (params) {
-							return that.setTheme(params.themeName);
-						}
-					},
-					{
-						frontend_action_name: "test.my.frontend.actions.getTicketTimeline",
-						function: async function () {
-							return that.getTicketTimeline();
-						}
+			this._jouleConnector.registerActions(this.getFrontendActions.bind(this));
+		},
+
+		// Called by Joule for each user prompt to collect the currently available actions.
+		// Return different sets of actions depending on the current app state —
+		// scenarios requiring unavailable actions are automatically excluded by Joule.
+		getFrontendActions: function (_jouleContext) {
+			var that = this;
+			return [
+				{
+					frontend_action_name: "test.my.frontend.actions.setTheme",
+					function: async function (params) {
+						return that.setTheme(params.themeName);
 					}
-				];
-			});
+				},
+				{
+					frontend_action_name: "test.my.frontend.actions.getTicketTimeline",
+					function: async function () {
+						return that.getTicketTimeline();
+					}
+				}
+			];
 		},
 
 		onExit: function () {

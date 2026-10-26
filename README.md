@@ -135,7 +135,7 @@ When the `sap.ui.joule.frontend` library is loaded, it automatically registers g
 
 ### JouleConnector — Registration of custom Frontend Actions
 
-This application uses `JouleConnector` from the `sap.ui.joule.frontend` library to register its frontend actions using its ssimple  `registerActions()` API. 
+This application uses `JouleConnector` from the `sap.ui.joule.frontend` library to register its frontend actions using its simple `registerActions()` API.
 
 > Behind the scenes, the connector detects whether the app runs in FLP or standalone and handles all communication with the Joule web client (via MessageBroker in FLP, via direct API in standalone).
 
@@ -218,32 +218,36 @@ In `Main.controller.js`, the `initJoule` function sets up the `JouleConnector` a
 
 ```javascript
 initJoule: function () {
-    var that = this;
-
     // Create connector — auto-detects FLP vs. standalone environment
     this._jouleConnector = new JouleConnector("test.my.frontend.actions");
 
-    // Register app-specific frontend actions
-    this._jouleConnector.registerActions(function (_jouleContext) {
-        return [
-            {
-                frontend_action_name: "test.my.frontend.actions.setTheme",
-                function: async function (params) {
-                    return that.setTheme(params.themeName);
-                }
-            },
-            {
-                frontend_action_name: "test.my.frontend.actions.getTicketTimeline",
-                function: async function () {
-                    return that.getTicketTimeline();
-                }
+    // Register app-specific frontend actions.
+    this._jouleConnector.registerActions(this.getFrontendActions.bind(this));
+},
+
+// Called by Joule for each user prompt to collect the currently available actions.
+// Return different sets of actions depending on the current app state —
+// scenarios requiring unavailable actions are automatically excluded by Joule.
+getFrontendActions: function (_jouleContext) {
+    var that = this;
+    return [
+        {
+            frontend_action_name: "test.my.frontend.actions.setTheme",
+            function: async function (params) {
+                return that.setTheme(params.themeName);
             }
-        ];
-    });
+        },
+        {
+            frontend_action_name: "test.my.frontend.actions.getTicketTimeline",
+            function: async function () {
+                return that.getTicketTimeline();
+            }
+        }
+    ];
 },
 ```
 
-It connects the function names and parameters declared in the Joule capability with concrete UI5 controller methods `setTheme(...)` and `getTicketTimeline()`. The callback passed to `registerActions` is invoked every time the user sends a prompt to Joule. This allows the app to dynamically decide which actions are currently available. Scenarios requiring unavailable functions are not offered in Joule when the user prompt is handled.
+It connects the function names and parameters declared in the Joule capability with concrete UI5 controller methods `setTheme(...)` and `getTicketTimeline()`. The `getFrontendActions` callback is invoked every time the user sends a prompt to Joule. This allows the app to dynamically decide which actions are currently available. Scenarios requiring unavailable functions are not offered in Joule when the user prompt is handled.
 
 The `onExit()` method calls `this._jouleConnector.disconnect()` for proper cleanup.
 

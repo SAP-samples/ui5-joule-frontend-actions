@@ -150,28 +150,32 @@ sap.ui.define([
         },
 
         initJoule: function () {
-            var that = this;
-
             // Create connector — auto-detects FLP vs. standalone
             this._jouleConnector = new JouleConnector("my.app.namespace");
 
             // Register app-specific frontend actions
-            this._jouleConnector.registerActions(function (_jouleContext) {
-                return [
-                    {
-                        frontend_action_name: "my.app.setTheme",
-                        function: async function (params) {
-                            return that.setTheme(params.themeName);
-                        }
-                    },
-                    {
-                        frontend_action_name: "my.app.getTicketTimeline",
-                        function: async function () {
-                            return that.getTicketTimeline();
-                        }
+            this._jouleConnector.registerActions(this.getFrontendActions.bind(this));
+        },
+
+        // Called by Joule for each user prompt to collect the currently available actions.
+        // Return different sets of actions depending on the current app state —
+        // scenarios requiring unavailable actions are automatically excluded by Joule.
+        getFrontendActions: function (_jouleContext) {
+            var that = this;
+            return [
+                {
+                    frontend_action_name: "my.app.setTheme",
+                    function: async function (params) {
+                        return that.setTheme(params.themeName);
                     }
-                ];
-            });
+                },
+                {
+                    frontend_action_name: "my.app.getTicketTimeline",
+                    function: async function () {
+                        return that.getTicketTimeline();
+                    }
+                }
+            ];
         },
 
         onExit: function () {
@@ -189,7 +193,7 @@ That's it.
 
 > Note: the action function should do its task reasonably fast – just like it would do for a user interaction in the UI. There is currently a 15‑second timeout to prevent Joule from having to wait too long.
 
-The `registerActions` callback is invoked for each user prompt, so you can dynamically return different actions depending on the current UI state.
+The `getFrontendActions` method is invoked for each user prompt, so you can dynamically return different actions depending on the current UI state.
 
 When parameters are declared in the YAML action definition (like `themeName` for `setTheme`), the JavaScript function is called with those parameters set by Joule:
 
