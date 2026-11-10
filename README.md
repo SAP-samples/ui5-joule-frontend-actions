@@ -11,13 +11,13 @@ The application uses the `JouleConnector` from the `sap.ui.joule.frontend` libra
 
 ## Requirements
 
-1. A current [Node.js](https://nodejs.org/) version (20.12 or 22.x/24.x) along with [npm](https://www.npmjs.com/) (or alternative package manager) for dependency management.
+1. A current [Node.js](https://nodejs.org/) version (22.x or 24.x or 26.x) along with [npm](https://www.npmjs.com/) (or alternative package manager) for dependency management.
 
 2. The [Joule CLI tool](https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/install-and-update-joule-studio-cli): `npm install -g @sap/joule-studio-cli`
 
 3. Access to a [Joule service instance](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/create-joule-subscription-and-instance). You need to have a user and the respective access information (URLs, client-ID, client-secret, see below).
 
-4. SAPUI5 1.151 or higher (for `sap.ui.joule.frontend`).
+4. SAPUI5 1.151 or higher (for `sap.ui.joule.frontend`). For older versions or other UI technologies, see the [`pure-joule-webclient`](../../tree/pure-joule-webclient) branch which uses the webclient APIs directly.
 
 ## Preparation
 
@@ -103,23 +103,27 @@ npm start
 
 **CAVEAT: things are not so easy - make sure to read the entire section below to make Joule inside the locally run app actually work!**
 
-As shown in the terminal after executing this command, the app is then running on:
-- http://localhost:8080/index.html (launcher page with buttons to choose between variants)
-- http://localhost:8080/index-standalone.html (standalone variant)
-- http://localhost:8080/index-flp.html (SAP Fiori Launchpad variant)
+The `--https` flag in the start script serves the app over **HTTPS** on port 8443. As shown in the terminal after executing this command, the app is then running on:
+- https://localhost:8443/index.html (launcher page with buttons to choose between variants)
+- https://localhost:8443/index-standalone.html (standalone variant)
+- https://localhost:8443/index-flp.html (SAP Fiori Launchpad variant)
 
-A browser window should automatically open. When you then navigate to the standalone version, you should see the purple Joule icon in the bottom right corner. When launching the FLP variant, the Joule icon is in the FLP shell bar.
+A browser window should automatically open. When prompted about the self-signed certificate, accept it. When you then navigate to the standalone version, you should see the purple Joule icon in the bottom right corner. When launching the FLP variant, the Joule icon is in the FLP shell bar.
+
+> **Why HTTPS?** Joule's web client has strict Content Security Policy (CSP) settings that only allow it to be embedded in pages served over HTTPS on allowlisted domains. Without HTTPS, the Joule iframe will refuse to load.
+>
+> **Why UI5 CLI v5 (alpha)?** In UI5 CLI v4, the `--h2` flag (which also enabled HTTPS) relies on the SPDY npm library, which is broken on Node.js ≥ 24. UI5 CLI v5 replaces it with the `--https` flag using Node's built-in HTTPS support. That's why this sample uses the v5 alpha — it's currently the only way to get HTTPS serving working on Node 24+. UI5 CLI v5 also has built-in livereload support, so the separate `ui5-middleware-livereload` package is not used.
 
 ***But...:***
 
-> **IMPORTANT**: content inside the Joule popup will **not** load successfully on localhost because Joule has strict rules (CSP settings) in which domains it is allowed to be embedded. `localhost` is not one of them. The most straightforward way for local testing is to override the computer's DNS resolution:
+> **IMPORTANT**: content inside the Joule popup will **not** load successfully on localhost because Joule's CSP settings do not allowlist `localhost`. The most straightforward way for local testing is to override the computer's DNS resolution:
  - On Mac:
    - `sudo nano /etc/hosts` and add the following entries:
      - `127.0.0.1  myhost.sap.corp`
      - `::1  myhost.sap.corp`
    - `sudo dscacheutil -flushcache`
    - `sudo killall -HUP mDNSResponder`
-   - Then open the app by opening http://myhost.sap.corp:8080/index.html in your browser. If it does not work, try https://myhost.sap.corp:8080/index.html and accepting the missing certificate). 
+   - Then open the app at https://myhost.sap.corp:8443/index.html in your browser and accept the self-signed certificate.
 Other options are to deploy the app on *.ondemand.com, which is an allowed domain, or to [configure the allowlisted domains](https://help.sap.com/docs/joule/service-guide/custom-domain-configuration-for-joule?locale=en-US).
 
 > **IMPORTANT for the FLP sandbox version:** depending on its exact version of the Joule plugin for FLP relies on the SAP default assistant (with the name `sap_digital_assistant`) being present. When not present, the Joule popup frame will show a "Something went wrong - The service is currently unavailable..." error at the bottom. This error only occurs in the FLP version of the app, not in the standalone version. A workaround that works with all versions of the FLP plugin is to simply deploy your own assistant also under this official name: `joule deploy --compile --name sap_digital_assistant`. Note that this might override the official SAP assistant of this Joule instance, so only do it when that assistant is truly not there - you can use `joule list` to see which assistants are currently deployed. In newer versions of the Joule FLP plugin, it is possible to configure that the standard assistant should NOT be used. To do this, the entry `config: { defaultBotName: "" }` needs to be added to `sap-ushell-config` in the `index-flp.html` file within the `bootstrapPlugins.DigitalAssistant` category. This has already been done in this repository. In case this causes issues with older Joule versions it's worth to try and remove it.
@@ -259,7 +263,7 @@ The generic `describeUI` action (provided automatically by the framework) can re
 
 ## TypeScript Usage
 
-While this sample is pure JavaScript, the `/types` folder contains experimental (AI-generated, unverified and unofficial) TypeScript type definitions. Until there are official type definitions provided, you may use these in your application to get TypeScript support for the Joule web client APIs. **These type definitions are provided as-is, they come without warranty or support, and do not imply that the typed APIs are stable and will be present in future versions of the Joule web client!**
+While this sample is pure JavaScript, the `/types` folder contains TypeScript type definitions for the Joule web client APIs, based on the [official documentation](https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/developer-guide-for-joule-web-client) and verified against the webclient source code. You may use these in your application to get TypeScript support. **These type definitions are provided as-is, they come without warranty or support, and do not imply that the typed APIs are stable and will be present in future versions of the Joule web client!**
 
 ## Known Issues
 

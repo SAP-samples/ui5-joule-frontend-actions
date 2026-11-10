@@ -282,4 +282,6 @@ Let us know below!
 
 ---
 
+> **Note for SAPUI5 versions before 1.151** or non-UI5 environments: the `JouleConnector` is not available. In that case, you can communicate with the Joule web client directly using its JavaScript APIs. This involves handling FLP vs. standalone detection yourself. See the [appendix on direct webclient usage](blog-appendix-webclient-apis.md) for details and the [`pure-joule-webclient` branch](https://github.com/SAP-samples/ui5-joule-frontend-actions/tree/pure-joule-webclient) of the sample app for a complete working example.
+
 *Article written with contributions from Christian Grail and Andriy Sobol (Classic UIs) and Christian Kolbowski (SAP Fiori elements).*

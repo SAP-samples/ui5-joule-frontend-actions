@@ -7,24 +7,19 @@ declare global {
     sap: {
       das: {
         webclient: SAPDASWebClient;
-        // Default bridge implementations (do not overwrite)
-        // Platform-specific defaults for S/4 and Workzone
-        // Consumers may call these manually from custom implementations.
-        das?: never; // keep namespace stable
-        // Expose defaultBridge under window.sap.das.webclient
       };
-      // Legacy global path for preregistration and legacy bridge
-      sapdas?: {
-        webclientPreregistration?: Record<
-          string,
-          {
-            callbacks: WebClientBridge;
-            thisContext?: any;
-            priority?: number;
-          }
-        >;
-        webclientBridge?: WebClientBridge | undefined;
-      };
+    };
+    // Legacy global path for preregistration and legacy bridge (window.sapdas, NOT window.sap.sapdas)
+    sapdas?: {
+      webclientPreregistration?: Record<
+        string,
+        {
+          callbacks: WebClientBridge;
+          thisContext?: any;
+          priority?: number;
+        }
+      >;
+      webclientBridge?: WebClientBridge | undefined;
     };
   }
 }
@@ -81,6 +76,7 @@ export interface STTMetadata {
 /** Message payload sent to onMessage */
 export interface OnMessagePayload {
   messages: any[];
+  conversationId?: string;
   [key: string]: any;
 }
 
@@ -136,9 +132,11 @@ export interface FrontendAction {
 
 /** Joule context provided to frontend actions */
 export interface JouleContext {
-  assistantName: string;
-  threadId: string;
-  correlationId: string;
+  assistant_name: string;
+  thread_id: string;
+  correlation_id: string;
+  root_correlation_id: string;
+  return_expected: boolean;
 }
 
 /** Speech-to-Text audio blobs provided to interim/final handlers */
@@ -168,6 +166,12 @@ export interface WebClientBridge {
   onConversationSelected?: (conversationId: string, botName: string) => MaybePromise<void>;
   /** Available in Release 2510 (Oct 2025) */
   onBackNavigationStateChange?: (state: boolean, view: string, botName: string) => MaybePromise<void>;
+
+  // Additional event callbacks
+  onFailedToLoad?: (botName: string) => MaybePromise<void>;
+  onBlockingError?: (botName: string) => MaybePromise<void>;
+  onDock?: (botName: string) => MaybePromise<void>;
+  logout?: (botName: string) => MaybePromise<void>;
 
   // Query callbacks
   getClientInfo?: (botName: string) => MaybePromise<ClientInfo>;

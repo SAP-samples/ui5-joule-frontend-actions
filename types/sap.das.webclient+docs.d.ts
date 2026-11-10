@@ -22,38 +22,39 @@ declare global {
          */
         // The defaultBridge is defined on SAPDASWebClient below.
       };
+    };
+
+    /**
+     * Legacy global path object for preregistration and legacy bridge usage.
+     * Accessed at `window.sapdas` (NOT `window.sap.sapdas`).
+     * Still supported for backward compatibility.
+     */
+    sapdas?: {
+      /**
+       * Preregistration container used when your app loads before the Web Client.
+       * The Web Client will process these entries once available.
+       *
+       * Example:
+       * window.sapdas.webclientPreregistration.myAppId = {
+       *   callbacks: myBridgeImpl,
+       *   thisContext: this,
+       *   priority: window.sap.das.webclient.CALL_PRIORITY.DEFAULT
+       * }
+       */
+      webclientPreregistration?: Record<
+        string,
+        {
+          callbacks: WebClientBridge;
+          thisContext?: any;
+          priority?: number;
+        }
+      >;
 
       /**
-       * Legacy global path object for preregistration and legacy bridge usage.
-       * Still supported for backward compatibility.
+       * Legacy object registration for the Web Client Bridge.
+       * Prefer using `registerBridgeCallbacks()` on `window.sap.das.webclient`.
        */
-      sapdas?: {
-        /**
-         * Preregistration container used when your app loads before the Web Client.
-         * The Web Client will process these entries once available.
-         *
-         * Example:
-         * window.sapdas.webclientPreregistration.myAppId = {
-         *   callbacks: myBridgeImpl,
-         *   thisContext: this,
-         *   priority: window.sap.das.webclient.CALL_PRIORITY.DEFAULT
-         * }
-         */
-        webclientPreregistration?: Record<
-          string,
-          {
-            callbacks: WebClientBridge;
-            thisContext?: any;
-            priority?: number;
-          }
-        >;
-
-        /**
-         * Legacy object registration for the Web Client Bridge.
-         * Prefer using `registerBridgeCallbacks()` on `window.sap.das.webclient`.
-         */
-        webclientBridge?: WebClientBridge | undefined;
-      };
+      webclientBridge?: WebClientBridge | undefined;
     };
   }
 }
@@ -107,11 +108,13 @@ export interface WebClientThread {
  * Only one of 'left' or 'right', and one of 'top' or 'bottom' should be set to avoid layout conflicts.
  *
  * Default values if not provided (bridge `getInitialDisplayProperties`):
- * - top: 0
+ * - top: null (not set)
  * - bottom: '1rem'
  * - right: '1rem'
- * - left: 0
+ * - left: null (not set)
  * - zIndex: 11
+ *
+ * Note: null means the property is not applied. This differs from 0.
  */
 export interface InitialDisplayProperties {
   /** Top position value (valid CSS unit or number) */
@@ -179,6 +182,8 @@ export interface STTMetadata {
 export interface OnMessagePayload {
   /** Array of message objects returned by assistant */
   messages: any[];
+  /** Conversation/thread ID (present when a threadId is available) */
+  conversationId?: string;
   /** Additional fields may be present */
   [key: string]: any;
 }
@@ -292,14 +297,19 @@ export interface FrontendAction {
 /**
  * Context object passed to frontend actions.
  * Use for logging, correlation, and assistant/thread awareness.
+ * Note: all properties use snake_case (matching the webclient source).
  */
 export interface JouleContext {
   /** Name of the currently active assistant */
-  assistantName: string;
+  assistant_name: string;
   /** UUID of the current conversation thread */
-  threadId: string;
+  thread_id: string;
   /** Correlation UUID for logging purposes */
-  correlationId: string;
+  correlation_id: string;
+  /** Root correlation UUID for logging purposes */
+  root_correlation_id: string;
+  /** Whether the action is expected to return a value */
+  return_expected: boolean;
 }
 
 /** Speech-To-Text audio blob type used for interim/final audio handlers */
@@ -401,6 +411,26 @@ export interface WebClientBridge {
    * @param view The associated view name.
    */
   onBackNavigationStateChange?: (state: boolean, view: string, botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when the Web Client fails to load (e.g., network or configuration error).
+   */
+  onFailedToLoad?: (botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when a blocking error occurs in the Web Client.
+   */
+  onBlockingError?: (botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when the Web Client is docked.
+   */
+  onDock?: (botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when a logout is triggered.
+   */
+  logout?: (botName: string) => MaybePromise<void>;
 
   /**
    * Called on every user request to provide user-specific frontend data to Joule.
