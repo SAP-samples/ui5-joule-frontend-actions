@@ -17,13 +17,15 @@ The application uses the `JouleConnector` from the `sap.ui.joule.frontend` libra
 
 3. Access to a [Joule service instance](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/create-joule-subscription-and-instance). You need to have a user and the respective access information (URLs, client-ID, client-secret, see below).
 
-4. SAPUI5 1.151 or higher (for `sap.ui.joule.frontend`). For older versions or other UI technologies, see the [`pure-joule-webclient`](../../tree/pure-joule-webclient) branch which uses the webclient APIs directly.
+4. SAPUI5 1.151 or higher (for `sap.ui.joule.frontend`). For older versions or other UI technologies, see the [`pure-joule-webclient`](../../tree/pure-joule-webclient) branch which uses the Joule webclient APIs directly.
 
 ## Preparation
 
-### 1. Install the app dependencies
+### 1. Clone the project and install the dependencies
 
 ```sh
+git clone https://github.com/SAP-samples/ui5-joule-frontend-actions.git
+cd ui5-joule-frontend-actions
 npm install
 ```
 
@@ -64,7 +66,7 @@ joule deploy --compile --name my_frontend_actions
 This sample application demonstrates two deployment scenarios:
 
 #### Standalone Application
-In the standalone variant (`index-standalone.html`), the Joule web client is [loaded explicitly using a script tag](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/integrating-joule-using-script).
+In the standalone variant (`index-standalone.html`), the Joule webclient is [loaded explicitly using a script tag](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/integrating-joule-using-script).
 
 In case you changed the assistant name `my_frontend_actions` to something else when deploying the assistant, then this term also needs to be changed in the script tag.
 
@@ -77,7 +79,7 @@ At minimum, replace `<your_das_tenant_URL>` in the script tag of `index-standalo
 </script>
 ```
 
-The `data-expander-type` attribute determines what kind of icon/button opens the Joule web client.
+The `data-expander-type` attribute determines what kind of icon/button opens the Joule webclient.
 
 #### SAP Fiori Launchpad Integration
 In the FLP variant (`index-flp.html`), Joule is loaded via the SAP Fiori Launchpad's bootstrap plugin mechanism. Note that this configuration and bootstrapping of the FLP sandbox is only meant for local development! In productive systems, the app component is loaded directly and the html file is not used. In the sandbox HTML file configure the Digital Assistant plugin in the `sap-ushell-config`:
@@ -110,7 +112,7 @@ The `--https` flag in the start script serves the app over **HTTPS** on port 844
 
 A browser window should automatically open. When prompted about the self-signed certificate, accept it. When you then navigate to the standalone version, you should see the purple Joule icon in the bottom right corner. When launching the FLP variant, the Joule icon is in the FLP shell bar.
 
-> **Why HTTPS?** Joule's web client has strict Content Security Policy (CSP) settings that only allow it to be embedded in pages served over HTTPS on allowlisted domains. Without HTTPS, the Joule iframe will refuse to load.
+> **Why HTTPS?** The Joule webclient has strict Content Security Policy (CSP) settings that only allow it to be embedded in pages served over HTTPS on allowlisted domains. Without HTTPS, the Joule iframe will refuse to load.
 >
 > **Why UI5 CLI v5 (alpha)?** In UI5 CLI v4, the `--h2` flag (which also enabled HTTPS) relies on the SPDY npm library, which is broken on Node.js ≥ 24. UI5 CLI v5 replaces it with the `--https` flag using Node's built-in HTTPS support. That's why this sample uses the v5 alpha — it's currently the only way to get HTTPS serving working on Node 24+. UI5 CLI v5 also has built-in livereload support, so the separate `ui5-middleware-livereload` package is not used.
 
@@ -141,7 +143,7 @@ When the `sap.ui.joule.frontend` library is loaded, it automatically registers g
 
 This application uses `JouleConnector` from the `sap.ui.joule.frontend` library to register its frontend actions using its simple `registerActions()` API.
 
-> Behind the scenes, the connector detects whether the app runs in FLP or standalone and handles all communication with the Joule web client (via MessageBroker in FLP, via direct API in standalone).
+> Behind the scenes, the connector detects whether the app runs in FLP or standalone and handles all communication with the Joule webclient (via MessageBroker in FLP, via direct API in standalone).
 
 ### App-Specific custom Frontend Actions
 
@@ -261,6 +263,17 @@ The controller methods `setTheme` and `getTicketTimeline` implement the actual a
 
 The generic `describeUI` action (provided automatically by the framework) can read what's visible on screen. But it returns control-level data: element IDs, types, labels, and raw text values. The `getTicketTimeline` action, by contrast, returns **semantically meaningful business data**: who said what, when, and what action items exist. This is something a generic UI scraping approach can never provide with the same quality.
 
+## Beyond JouleConnector: Direct Joule Webclient APIs
+
+The Joule webclient (the client-side chat UI of Joule running in the browser) also exposes JavaScript APIs for direct interaction — for example toggling the Joule panel, sending messages programmatically, or listing conversations. These APIs are independent of frontend actions and can be useful alongside `JouleConnector`.
+
+The [`pure-joule-webclient`](../../tree/pure-joule-webclient) branch of this repository demonstrates two things:
+
+1. **Direct Joule webclient APIs** (`window.sap.das.webclient`) — toggle, sendMessage, newConversation, and more. The branch also includes TypeScript type definitions for these APIs in the `/types` folder.
+2. **Frontend action registration without `JouleConnector`** — a `JouleWebclientHelper` class that handles FLP vs. standalone communication manually, for SAPUI5 < 1.151 or non-UI5 environments.
+
+For details, see the [appendix on Joule webclient APIs](docs/blog-appendix-webclient-apis.md).
+
 ## Known Issues
 
 No known code issues.
@@ -272,7 +285,7 @@ No known code issues.
 - **FLP mode** (`index-flp.html`): The Joule tenant URL must be configured in the `bootstrapPlugins` section, plus the default bot `sap_digital_assistant` may need to be deployed or disabled (see above).
 
 ## How to obtain support
-[Create an issue](https://github.com/SAP-samples/ui5-joule-frontend-actions/issues) in this repository if you find a bug or have questions about the content. But note that this is not a Joule or Joule web client support forum, but rather is provided by the UI5 team, which is a *user* of Joule like you are.
+[Create an issue](https://github.com/SAP-samples/ui5-joule-frontend-actions/issues) in this repository if you find a bug or have questions about the content. But note that this is not a Joule or Joule webclient support forum, but rather is provided by the UI5 team, which is a *user* of Joule like you are.
  
 For additional support on Joule in general, [ask a question in SAP Community](https://answers.sap.com/questions/ask.html).
 

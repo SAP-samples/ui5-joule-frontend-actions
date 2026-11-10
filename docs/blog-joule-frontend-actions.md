@@ -14,7 +14,7 @@ We, developing SAP's UI technologies, are excited to make use of those, to let J
 
 Both, the UI frameworks but also specific applications (including your own app), can offer such actions. With those actions, Joule's capabilities can be more user-focused, more specific, and more interactive now.
 
-![Overview diagram showing the new client-side communication channel between the Joule web client and the application within the browser.](architecture-overview.png)
+![Overview diagram showing the new client-side communication channel between the Joule webclient and the application within the browser.](architecture-overview.png)
 
 ## What's in it for me?
 
@@ -24,11 +24,11 @@ Both, the UI frameworks but also specific applications (including your own app),
 
 ## How does it work?
 
-You define an action's purpose, input parameters, and response in a YAML file and deploy it to Joule, so the LLM (Large Language Model) powering Joule can make sense of it and decide whether invoking the action would help with responding to the user's request. Inside the browser, a new communication channel between Joule's web client (the UI of Joule) and the web page (running any app or framework) is established. This communication allows Joule to check for currently available actions and to invoke a specific action – basically any kind of JavaScript function – and read its result.
+You define an action's purpose, input parameters, and response in a YAML file and deploy it to Joule, so the LLM (Large Language Model) powering Joule can make sense of it and decide whether invoking the action would help with responding to the user's request. Inside the browser, a new communication channel between the Joule webclient (the chat UI of Joule) and the web page (running any app or framework) is established. This communication allows Joule to check for currently available actions and to invoke a specific action – basically any kind of JavaScript function – and read its result.
 
 The overall flow from the user entering a prompt to the response from Joule being displayed looks like this:
 
-![Diagram showing the request flow from the user's prompt until the web client displays the response.](sequence-diagram.png)
+![Diagram showing the request flow from the user's prompt until the Joule webclient displays the response.](sequence-diagram.png)
 
 The action could be anything, not only reading information like the currently displayed data or error messages in the UI, but also modifying data, filters, sorting, personalization, or even navigating through the app or between apps.
 
@@ -44,7 +44,7 @@ Frontend actions can become available and unavailable dynamically. After each us
 
 If you are not familiar with Joule from a development perspective, it's a cloud service, which integrates with the BTP platform and for which capabilities can be developed. The developer defines an assistant with such capabilities. One capability is a group of semantically related use-cases, so-called scenarios. The scenarios have a human-readable – pardon: LLM-readable – description of what they do and what input parameters they need. The scenarios typically have a function as target. All the mentioned artifacts are technically described in YAML files.
 
-For the end-user, the Joule web client can appear as a chat frame inside applications to assist users. The LLM powering it can choose to invoke the available scenarios during the conversation.
+For the end-user, the Joule webclient can appear as a chat frame inside applications to assist users. The LLM powering it can choose to invoke the available scenarios during the conversation.
 
 Further info: https://www.sap.com/products/artificial-intelligence/ai-assistant.html
 
@@ -131,7 +131,7 @@ joule deploy --compile --name my_frontend_actions
 
 ### 2. Implement the action and register it with JouleConnector
 
-Since SAPUI5 1.151, the `sap.ui.joule.frontend` library provides the `JouleConnector` class which handles all communication with the Joule web client. It auto-detects whether the app runs standalone or inside SAP Fiori Launchpad and uses the appropriate communication mechanism internally.
+Since SAPUI5 1.151, the `sap.ui.joule.frontend` library provides the `JouleConnector` class which handles all communication with the Joule webclient. It auto-detects whether the app runs standalone or inside SAP Fiori Launchpad and uses the appropriate communication mechanism internally.
 
 Here is the complete setup in your controller:
 
@@ -282,6 +282,6 @@ Let us know below!
 
 ---
 
-> **Note for SAPUI5 versions before 1.151** or non-UI5 environments: the `JouleConnector` is not available. In that case, you can communicate with the Joule web client directly using its JavaScript APIs. This involves handling FLP vs. standalone detection yourself. See the [appendix on direct webclient usage](blog-appendix-webclient-apis.md) for details and the [`pure-joule-webclient` branch](https://github.com/SAP-samples/ui5-joule-frontend-actions/tree/pure-joule-webclient) of the sample app for a complete working example.
+> **Direct Joule webclient APIs:** The Joule webclient (the chat UI of Joule running in the browser) also exposes JavaScript APIs for direct interaction — toggling the Joule panel, sending messages programmatically, listing conversations, and more. These are useful alongside `JouleConnector` too. The [appendix on Joule webclient APIs](blog-appendix-webclient-apis.md) covers these APIs, includes TypeScript type definitions, and also shows how to register frontend actions **without** `JouleConnector` — for SAPUI5 versions before 1.151 or non-UI5 environments. See the [`pure-joule-webclient` branch](https://github.com/SAP-samples/ui5-joule-frontend-actions/tree/pure-joule-webclient) for a complete working example.
 
 *Article written with contributions from Christian Grail and Andriy Sobol (Classic UIs) and Christian Kolbowski (SAP Fiori elements).*

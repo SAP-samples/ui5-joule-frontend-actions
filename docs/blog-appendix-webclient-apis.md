@@ -1,12 +1,17 @@
-# Appendix: Using the Joule Webclient APIs Directly (without JouleConnector)
+# Appendix: Joule Webclient APIs — Direct Usage and Frontend Actions Without JouleConnector
 
-> This appendix accompanies the [main blog post on Joule Frontend Actions](blog-joule-frontend-actions.md). It covers the **low-level approach** to connecting your application to the Joule web client – without the `JouleConnector` from the `sap.ui.joule.frontend` library.
+> This appendix accompanies the [main blog post on Joule Frontend Actions](blog-joule-frontend-actions.md). It covers two topics:
 >
-> A working sample application using this approach is available on the [`pure-joule-webclient` branch](https://github.com/SAP-samples/ui5-joule-frontend-actions/tree/pure-joule-webclient) of the sample repository.
+> 1. **Direct Joule webclient APIs** — the Joule webclient (the client-side chat UI of Joule in the browser) exposes JavaScript APIs like `toggle()`, `sendMessage()`, and `newConversation()` that are useful alongside `JouleConnector` for programmatically controlling the Joule UI.
+> 2. **Frontend action registration without `JouleConnector`** — for SAPUI5 < 1.151 or non-UI5 environments.
+>
+> A working sample application covering both topics, including TypeScript type definitions for the Joule webclient APIs, is available on the [`pure-joule-webclient` branch](https://github.com/SAP-samples/ui5-joule-frontend-actions/tree/pure-joule-webclient) of the sample repository.
 
 ## When do you need this?
 
-Since SAPUI5 1.151, the [`JouleConnector`](https://ui5.sap.com/#/api/sap.ui.joule.frontend.JouleConnector) class in the `sap.ui.joule.frontend` library handles all the communication with Joule's web client automatically – including FLP vs. standalone detection. If you're on a current SAPUI5 version, you should use `JouleConnector` as described in the main blog post and can stop reading here.
+Since SAPUI5 1.151, the [`JouleConnector`](https://ui5.sap.com/#/api/sap.ui.joule.frontend.JouleConnector) class in the `sap.ui.joule.frontend` library handles all the communication with the Joule webclient automatically – including FLP vs. standalone detection. If you're on a current SAPUI5 version, you should use `JouleConnector` as described in the main blog post and can stop reading here.
+
+However, the [direct Joule webclient API section](#bonus-direct-joule-webclient-api-calls) below documents APIs for programmatic control of the Joule UI (toggling, sending messages, etc.) that `JouleConnector` does not provide — those are relevant regardless of your SAPUI5 version.
 
 However, there are situations where `JouleConnector` is **not available**:
 
@@ -14,13 +19,13 @@ However, there are situations where `JouleConnector` is **not available**:
 - Your application uses a **different UI technology** (plain JavaScript, Web Dynpro, SAP GUI for HTML, …)
 - You need **full control** over the communication layer
 
-In these cases, you can still register frontend actions by communicating directly with Joule's web client JavaScript APIs. This appendix explains how.
+In these cases, you can still register frontend actions by communicating directly with the Joule webclient JavaScript APIs. This appendix explains how.
 
 ## The two communication paths
 
 Without `JouleConnector`, your application needs to handle two different scenarios:
 
-1. **Standalone**: The app and Joule's web client run in the same browser window. You register callbacks directly with Joule's JavaScript API.
+1. **Standalone**: The app and the Joule webclient run in the same browser window. You register callbacks directly with Joule's JavaScript API.
 2. **FLP/Workzone**: The app may run in a different iframe than Joule. Communication happens via the FLP `MessageBroker` service.
 
 Not all applications will run in both scenarios — many will only run in one of them. But if you want to be safe for all deployment options, you need to handle both.
@@ -99,7 +104,7 @@ This synchronously checks for the presence of `sap.ushell.Container`. If found, 
 
 ### Standalone path
 
-When running standalone, the helper registers an object containing callback functions with the Joule web client:
+When running standalone, the helper registers an object containing callback functions with the Joule webclient:
 
 ```javascript
 var jouleCallbacks = {
@@ -175,9 +180,9 @@ Note: The `MessageBroker` API is SAP-internal. It is not publicly released for c
 
 This is exactly the kind of boilerplate that `JouleConnector` eliminates — it detects the environment and uses the right mechanism internally, so your application code doesn't have to.
 
-## Bonus: Direct Joule web client API calls
+## Bonus: Direct Joule webclient API calls
 
-Beyond frontend actions, the Joule web client exposes additional APIs for direct interaction. These only work when Joule runs in the same frame as the application (standalone mode or same-frame FLP). They do **not** work via the MessageBroker when app and Joule are in different iframes.
+Beyond frontend actions, the Joule webclient exposes additional APIs for direct interaction. These only work when Joule runs in the same frame as the application (standalone mode or same-frame FLP). They do **not** work via the MessageBroker when app and Joule are in different iframes. Availability may vary depending on the deployment environment — test in your target environment before investing into features that depend on these APIs.
 
 ```javascript
 // Toggle Joule open/closed
@@ -193,11 +198,13 @@ window.sap?.das?.webclient?.sendMessage("Show me the ticket timeline");
 await window.sap?.das?.webclient?.newConversation();
 ```
 
-There are further callback functions beyond `getFrontendActions` that can be registered. One can, for example, be called back on every assistant message or on creation of new conversations. Further APIs for controlling the Joule web client directly are described in [its documentation](https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/developer-guide-for-joule-web-client).
+There are further callback functions beyond `getFrontendActions` that can be registered. One can, for example, be called back on every assistant message or on creation of new conversations. Further APIs for controlling the Joule webclient directly are described in [its documentation](https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/developer-guide-for-joule-web-client).
+
+The [`pure-joule-webclient` branch](https://github.com/SAP-samples/ui5-joule-frontend-actions/tree/pure-joule-webclient) includes TypeScript type definitions for these APIs in the `/types` folder. These are provided as-is, without warranty or support.
 
 ## Key differences from JouleConnector
 
-| Aspect | JouleConnector (SAPUI5 ≥ 1.151) | Direct webclient APIs |
+| Aspect | JouleConnector (SAPUI5 ≥ 1.151) | Direct Joule webclient APIs |
 |---|---|---|
 | FLP detection | Automatic | Manual — `isFLPEnvironment()` check needed |
 | FLP communication | Handled internally | You implement the MessageBroker subscription |
@@ -206,4 +213,4 @@ There are further callback functions beyond `getFrontendActions` that can be reg
 | Cleanup | `connector.disconnect()` | Different code paths per environment |
 | Setup effort | ~5 lines in your controller | ~10 lines in your controller + a helper class (~200 lines) |
 
-If you're starting fresh and can use a current SAPUI5 version, go with `JouleConnector`. If you can't, the direct APIs give you the same capabilities – just with more wiring to do yourself. The [`pure-joule-webclient` branch](https://github.com/SAP-samples/ui5-joule-frontend-actions/tree/pure-joule-webclient) of the sample app has a complete working example with the `JouleWebclientHelper` ready to use.
+If you're starting fresh and can use a current SAPUI5 version, go with `JouleConnector`. If you can't, the direct APIs give you the same capabilities – just with more wiring to do yourself. The [`pure-joule-webclient` branch](https://github.com/SAP-samples/ui5-joule-frontend-actions/tree/pure-joule-webclient) of the sample app has a complete working example with the `JouleWebclientHelper` ready to use. The branch also includes TypeScript type definitions for the Joule webclient APIs.
