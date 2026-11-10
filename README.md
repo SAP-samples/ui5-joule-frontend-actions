@@ -261,10 +261,6 @@ The controller methods `setTheme` and `getTicketTimeline` implement the actual a
 
 The generic `describeUI` action (provided automatically by the framework) can read what's visible on screen. But it returns control-level data: element IDs, types, labels, and raw text values. The `getTicketTimeline` action, by contrast, returns **semantically meaningful business data**: who said what, when, and what action items exist. This is something a generic UI scraping approach can never provide with the same quality.
 
-## TypeScript Usage
-
-While this sample is pure JavaScript, the `/types` folder contains TypeScript type definitions for the Joule web client APIs, based on the [official documentation](https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/developer-guide-for-joule-web-client) and verified against the webclient source code. You may use these in your application to get TypeScript support. **These type definitions are provided as-is, they come without warranty or support, and do not imply that the typed APIs are stable and will be present in future versions of the Joule web client!**
-
 ## Known Issues
 
 No known code issues.
