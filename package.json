@@ -10,6 +10,6 @@
 	},
 	"devDependencies": {
 		"@ui5/cli": "^5.0.0-alpha.14",
-		"lockfile-lint": "5.0.1"
+		"lockfile-lint": "5.1.0"
 	}
 }
