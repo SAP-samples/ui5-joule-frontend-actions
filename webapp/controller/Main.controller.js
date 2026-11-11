@@ -2,8 +2,8 @@ sap.ui.define([
 	"sap/ui/core/mvc/Controller",
 	"sap/ui/core/Theming",
 	"sap/ui/model/json/JSONModel",
-	"sap/ui/joule/frontend/JouleConnector"
-], function (Controller, Theming, JSONModel, JouleConnector) {
+	"test/my/frontend/actions/JouleWebclientHelper"
+], function (Controller, Theming, JSONModel, JouleWebclientHelper) {
 	"use strict";
 
 	return Controller.extend("test.my.frontend.actions.controller.Main", {
@@ -15,16 +15,16 @@ sap.ui.define([
 			this.initJoule(); // initialize Joule integration
 		},
 
-		// Register the frontend actions with Joule using the JouleConnector (since SAPUI5 1.151).
-		// JouleConnector handles FLP vs. standalone detection and communication automatically.
+		// Register the frontend actions with Joule using JouleWebclientHelper.
+		// This helper encapsulates the FLP vs. standalone detection and communication.
 		// Note: in addition to the code registration here, the actions ALSO need to be deployed
 		// to the Joule backend as YAML files (see the joule/ folder).
 		initJoule: function () {
-			// Create connector — auto-detects FLP vs. standalone environment
-			this._jouleConnector = new JouleConnector("test.my.frontend.actions");
+			// Create helper — auto-detects FLP vs. standalone environment
+			this._jouleHelper = new JouleWebclientHelper("test.my.frontend.actions");
 
 			// Register app-specific frontend actions.
-			this._jouleConnector.registerActions(this.getFrontendActions.bind(this));
+			this._jouleHelper.registerActions(this.getFrontendActions.bind(this));
 		},
 
 		// Called by Joule for each user prompt to collect the currently available actions.
@@ -48,8 +48,8 @@ sap.ui.define([
 		},
 
 		onExit: function () {
-			if (this._jouleConnector) {
-				this._jouleConnector.disconnect();
+			if (this._jouleHelper) {
+				this._jouleHelper.disconnect();
 			}
 		},
 

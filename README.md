@@ -1,11 +1,17 @@
-# UI5 Sample for Demonstrating Joule Frontend Actions
+# UI5 Sample For Demonstrating Joule Frontend Actions (Direct Webclient API)
 
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/ui5-joule-frontend-actions)](https://api.reuse.software/info/github.com/SAP-samples/ui5-joule-frontend-actions)
 
 ## Description
 This sample UI5 application demonstrates how frontend actions can be defined for the AI assistant SAP Joule. Frontend actions allow for direct interaction between Joule and the client-side application UI.
 
-The application uses the `JouleConnector` from the `sap.ui.joule.frontend` library (available since SAPUI5 1.151), which provides a simple, unified API for registering frontend actions — regardless of whether the app runs standalone or inside SAP Fiori Launchpad.
+**This branch** demonstrates the direct usage of the Joule webclient APIs without `JouleConnector`. This is the approach to use when:
+- Your SAPUI5 version is older than 1.151 (which introduced `sap.ui.joule.frontend`)
+- You are not using SAPUI5 at all (other UI technologies)
+
+For the recommended approach using `JouleConnector` (SAPUI5 1.151+), see the [`main`](../../tree/main) branch.
+
+For the accompanying blog post and detailed technical explanation, see the [blog post](docs/blog-joule-frontend-actions.md) and its [appendix on direct webclient APIs](docs/blog-appendix-webclient-apis.md).
 
 ![Screenshot showing a UI5 application with issue ticket data and a Joule frame on the right where the user has asked for "all fields in the page" and Joule has responded with fields and values](docs/screenshot.png)
 
@@ -16,8 +22,6 @@ The application uses the `JouleConnector` from the `sap.ui.joule.frontend` libra
 2. The [Joule CLI tool](https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/install-and-update-joule-studio-cli): `npm install -g @sap/joule-studio-cli`
 
 3. Access to a [Joule service instance](https://help.sap.com/docs/joule/joule-development-guide-4b327297dce247fcb88a5f5bfeea97a1/create-joule-subscription-and-instance). You need to have a user and the required access information (URLs, client-ID, client-secret, see below).
-
-4. SAPUI5 1.151 or higher (for `sap.ui.joule.frontend`). For older versions or other UI technologies, see the [`pure-joule-webclient`](../../tree/pure-joule-webclient) branch which uses the Joule webclient APIs directly.
 
 ## Preparation
 
@@ -149,19 +153,21 @@ Other options are to deploy the app on *.ondemand.com, which is an allowed domai
 
 ## Application Architecture
 
-### Generic Frontend Actions (provided by the framework)
+### JouleWebclientHelper — Unified Communication
 
-When the `sap.ui.joule.frontend` library is loaded, it automatically registers generic UI introspection actions (like describing the visible UI elements, setting field values, or triggering buttons). Once the backend side of these actions is available within Joule (which is not the case at the time of writing), these actions will work with any SAPUI5 app without app-specific code — your app benefits automatically as soon as it loads the `sap.ui.joule.frontend` library.
+This application uses `JouleWebclientHelper.js`, an encapsulated helper class that abstracts the differences between the two Joule communication paths:
 
-### JouleConnector — Registration of custom Frontend Actions
+- **Auto-detects** whether the app runs in FLP or standalone
+- **Handles all communication** with the Joule webclient (via MessageBroker in FLP, via direct API in standalone)
+- **Provides a single API**: `registerActions()` and `disconnect()`
 
-This application uses `JouleConnector` from the `sap.ui.joule.frontend` library to register its frontend actions using its simple `registerActions()` API.
+No separate bridge class, no environment branching in your application code.
 
-> Behind the scenes, the connector detects whether the app runs in FLP or standalone and handles all communication with the Joule webclient (via MessageBroker in FLP, via direct API in standalone).
+> On the [`main`](../../tree/main) branch, the `JouleConnector` from the `sap.ui.joule.frontend` library (SAPUI5 1.151+) does the same thing with even less code. This branch shows how the same result is achieved when `JouleConnector` is not available.
 
-### App-Specific Custom Frontend Actions
+### App-Specific Actions
 
-This sample registers two custom actions that are available in addition to the generic ones:
+This sample registers two custom frontend actions:
 
 1. **`setTheme`** — switches the application theme (light/dark/accessibility). Demonstrates the Joule-to-app direction.
 2. **`getTicketTimeline`** — returns structured conversation data from the ticket. Demonstrates why custom actions are valuable: they provide semantically meaningful business data that generic UI scraping cannot deliver.
@@ -234,15 +240,15 @@ Note that `scripting_type: handlebars` is required to make this templating work.
 
 ### 2. The Frontend Actions Implementation
 
-In `Main.controller.js`, the `initJoule` function sets up the `JouleConnector` and registers the app's frontend actions:
+In `Main.controller.js`, the `initJoule` function sets up the `JouleWebclientHelper` and registers the app's frontend actions:
 
 ```javascript
 initJoule: function () {
-    // Create connector — auto-detects FLP vs. standalone environment
-    this._jouleConnector = new JouleConnector("test.my.frontend.actions");
+    // Create helper — auto-detects FLP vs. standalone environment
+    this._jouleHelper = new JouleWebclientHelper("test.my.frontend.actions");
 
     // Register app-specific frontend actions.
-    this._jouleConnector.registerActions(this.getFrontendActions.bind(this));
+    this._jouleHelper.registerActions(this.getFrontendActions.bind(this));
 },
 
 // Called by Joule for each user prompt to collect the currently available actions.
@@ -268,13 +274,34 @@ getFrontendActions: function (_jouleContext) {
 
 It connects the function names and parameters declared in the Joule capability with concrete UI5 controller methods `setTheme(...)` and `getTicketTimeline()`. The `getFrontendActions` callback is invoked every time the user sends a prompt to Joule. This allows the app to dynamically decide which actions are currently available. Scenarios requiring unavailable functions are automatically excluded when Joule processes the user's prompt.
 
-The `onExit()` method calls `this._jouleConnector.disconnect()` for proper cleanup.
+The `onExit()` method calls `this._jouleHelper.disconnect()` for proper cleanup.
 
 The controller methods `setTheme` and `getTicketTimeline` implement the actual actions inside the UI5 application. `setTheme` returns an object with a `success` flag and a `message`. `getTicketTimeline` returns structured business data — ticket metadata plus a mapped timeline of messages with roles, timestamps, and action items. Note that the returned object is available as the `.content` property of the result variable in the Joule function definition. This means you get it by accessing `frontendActionResult.content`, not by referring to `frontendActionResult` itself.
 
-### Why app-specific actions?
+### 3. JouleWebclientHelper internals
 
-The generic `describeUI` action (provided automatically by the framework) can read what's visible on screen. But it returns generic control-level data: element IDs, types, labels, and raw text values. The `getTicketTimeline` action, by contrast, returns **semantically meaningful business data**: who said what, when, and what action items exist. This is something that a generic UI scraping approach cannot provide with the same quality.
+The `JouleWebclientHelper.js` class handles:
+
+- **Environment detection**: `JouleWebclientHelper.isFLPEnvironment()` checks for `sap.ushell.Container`
+- **FLP path**: connects to the FLP MessageBroker, subscribes to three channels (`events`, `message`, `frontendactions`), handles `getFrontendActions` and `executeFrontendAction` messages
+- **Standalone path**: registers with `window.sap.das.webclient.registerBridgeCallbacks()` or pre-registers via `window.sapdas.webclientPreregistration[clientId] = {callbacks: ...}`
+- **Cleanup**: unsubscribes from MessageBroker channels (FLP) or calls `unregisterBridgeCallbacks` (standalone)
+
+### Bonus: Direct Joule webclient API calls
+
+**Note**: The APIs demonstrated below require `window.sap.das.webclient` to be available, which is the case in standalone mode and in the local FLP sandbox. For productive environments this means Joule must run in the same frame as the application (basically: the application must not be isolated inside an iframe). Availability may vary depending on the deployment environment. Test in your target environment before investing into features that depend on these APIs.
+
+At the bottom of `Main.controller.js` you can find three methods that demonstrate how to interact with the Joule webclient via API. They are connected to the respective header buttons in `Main.view.xml`.
+
+- `onJouleTogglePress` calls the Joule webclient's `toggle()` method, opening and closing the Joule assistant window
+- `onJouleToggleNavPress` calls `toggleNavigationPanel()`, opening/closing the navigation panel in Joule which displays the list of conversations
+- `onJouleSendUserMessagePress` calls `sendMessage(...)`. This adds a message to the ongoing conversation as if the user had typed the message. Joule will then respond to this message, continuing the conversation.
+
+There are additional APIs which allow interaction with the Joule webclient and there are further callback functions beyond the `getFrontendActions` function used in this sample app. One can, for example, be called back on every assistant message or on creation of new conversations. Further APIs for controlling the Joule webclient directly are described in [its documentation](https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/developer-guide-for-joule-web-client).
+
+## TypeScript Usage
+
+While this sample is pure JavaScript, the `/types` folder contains TypeScript type definitions for the Joule webclient APIs, based on the [official documentation](https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/developer-guide-for-joule-web-client) and verified against the webclient source code. You may use these in your application to get TypeScript support. **These type definitions are provided as-is, they come without warranty or support, and do not imply that the typed APIs are stable and will be present in future versions of the Joule webclient!**
 
 ## Frontend Actions in Other UI Technologies
 
@@ -291,6 +318,9 @@ No known code issues.
 - The user must be logged in to Joule. Otherwise, the following message may appear: "Your domain is not trusted. Please contact your system administrator."
 - **Standalone mode** (`index-standalone.html`): The Joule tenant URL must be properly configured in the script tag
 - **FLP mode** (`index-flp.html`): The Joule tenant URL must be configured in the `bootstrapPlugins` section, plus the default bot `sap_digital_assistant` may need to be deployed or disabled (see above).
+
+### API Limitations
+The Joule webclient API methods (`toggle()`, `toggleNavigationPanel()`, `sendMessage()`) require `window.sap.das.webclient` to be available, which is the case in standalone mode and in the local FLP sandbox. For productive environments this means Joule must run in the same frame as the application (basically: the application must not be isolated inside an iframe). Availability may vary depending on the deployment environment. Test in your target environment before investing into features that depend on these APIs.
 
 ## How to obtain support
 [Create an issue](https://github.com/SAP-samples/ui5-joule-frontend-actions/issues) in this repository if you find a bug or have questions about the content. Note that this repository is maintained by the UI5 team — a *user* of Joule, not its support channel.

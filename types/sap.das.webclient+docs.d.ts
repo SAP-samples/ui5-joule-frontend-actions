@@ -1,0 +1,531 @@
+// Type definitions for SAP DAS Web Client Bridge API
+// Project: window.sap.das.webclient
+// Covers only the officially documented bridge API:
+//   https://help.sap.com/docs/joule/joule-development-guide-ba88d1ec6a1b442098863d577c19b0c0/developer-guide-for-joule-web-client
+// Minimum TypeScript Version: 4.4
+
+declare global {
+  interface Window {
+    sap: {
+      das: {
+        /**
+         * SAP DAS Web Client API available at `window.sap.das.webclient`.
+         * Use this API to register bridge callbacks and interact with the Web Client bridge.
+         */
+        webclient: SAPDASWebClient;
+
+        /**
+         * Default bridge implementations for platform-specific behavior.
+         * Do not overwrite these objects. You may call them explicitly from your custom bridge
+         * if you want to delegate to the default handling.
+         *
+         * Example:
+         * `window.sap.das.webclient.defaultBridge.s4.getApplicationContext(botName)`
+         */
+        // The defaultBridge is defined on SAPDASWebClient below.
+      };
+    };
+
+    /**
+     * Legacy global path object for preregistration and legacy bridge usage.
+     * Accessed at `window.sapdas` (NOT `window.sap.sapdas`).
+     * Still supported for backward compatibility.
+     */
+    sapdas?: {
+      /**
+       * Preregistration container used when your app loads before the Web Client.
+       * The Web Client will process these entries once available.
+       *
+       * Example:
+       * window.sapdas.webclientPreregistration.myAppId = {
+       *   callbacks: myBridgeImpl,
+       *   thisContext: this,
+       *   priority: window.sap.das.webclient.CALL_PRIORITY.DEFAULT
+       * }
+       */
+      webclientPreregistration?: Record<
+        string,
+        {
+          callbacks: WebClientBridge;
+          thisContext?: any;
+          priority?: number;
+        }
+      >;
+
+      /**
+       * Legacy object registration for the Web Client Bridge.
+       * Prefer using `registerBridgeCallbacks()` on `window.sap.das.webclient`.
+       */
+      webclientBridge?: WebClientBridge | undefined;
+    };
+  }
+}
+
+/**
+ * Priority constants for bridge callback providers.
+ * Higher values indicate higher priority.
+ *
+ * Execution modes:
+ * - ALL: All registered callbacks are called (e.g., `onMessage`, `onOpen`, `onClose`)
+ * - ONE_BY_PRIORITY: Only the highest priority callback is called (e.g., STT methods, `onNavigation`)
+ * - MERGE: All callbacks are called and results are merged (e.g., `getApplicationContext`, `getFrontendActions`)
+ */
+export interface CallPriority {
+  /** Lowest priority (0) */
+  LOWEST: 0;
+  /** Default priority (3) */
+  DEFAULT: 3;
+  /** High priority (6) */
+  HIGH: 6;
+  /** Highest priority (10) */
+  HIGHEST: 10;
+}
+
+/** Helper type: value or Promise resolving to value */
+export type MaybePromise<T> = T | Promise<T>;
+
+/**
+ * Position properties for initial display of the Joule iFrame.
+ * Only one of 'left' or 'right', and one of 'top' or 'bottom' should be set to avoid layout conflicts.
+ *
+ * Default values if not provided (bridge `getInitialDisplayProperties`):
+ * - top: null (not set)
+ * - bottom: '1rem'
+ * - right: '1rem'
+ * - left: null (not set)
+ * - zIndex: 11
+ *
+ * Note: null means the property is not applied. This differs from 0.
+ */
+export interface InitialDisplayProperties {
+  /** Top position value (valid CSS unit or number) */
+  top?: string | number;
+  /** Bottom position value (valid CSS unit or number) */
+  bottom?: string | number;
+  /** Left position value (valid CSS unit or number) */
+  left?: string | number;
+  /** Right position value (valid CSS unit or number) */
+  right?: string | number;
+  /** z-index for the iFrame container */
+  zIndex?: number;
+}
+
+/**
+ * Speech-To-Text configuration returned by `sttGetConfig`.
+ * Returning an object from this method enables microphone features in the Web Client.
+ */
+export interface STTConfig {
+  /**
+   * If true, the Web Client records audio using the browser's MediaRecorder.
+   * If false, implement recording yourself and provide audio via STT hooks.
+   */
+  useMediaRecorder: boolean;
+
+  /**
+   * Interval in milliseconds for interim audio chunks when using MediaRecorder.
+   * Only relevant if `useMediaRecorder` is true.
+   */
+  interimResultTime?: number;
+
+  /**
+   * Metadata describing the audio format to be recorded.
+   * Only relevant if `useMediaRecorder` is true.
+   */
+  audioMetaData?: {
+    /** MIME type and codecs (e.g., 'audio/ogg;codecs=opus') */
+    type?: string;
+    /** File format identifier */
+    fileFormat?: string;
+    /** Encoding (e.g., 'opus') */
+    encoding?: string;
+    /** Additional provider-specific fields */
+    [key: string]: any;
+  };
+}
+
+/**
+ * Metadata passed to STT start and audio handlers.
+ * May include language and audio format details.
+ */
+export interface STTMetadata {
+  /** Language code (e.g., 'en-US') */
+  language?: string;
+  /** Audio metadata (matches STTConfig.audioMetaData structure) */
+  audioMetadata?: STTConfig['audioMetaData'];
+  /** Additional provider-specific fields */
+  [key: string]: any;
+}
+
+/**
+ * Message payload received by `onMessage`.
+ * Contains an array of assistant messages.
+ */
+export interface OnMessagePayload {
+  /** Array of message objects returned by assistant */
+  messages: any[];
+  /** Conversation/thread ID (present when a threadId is available) */
+  conversationId?: string;
+  /** Additional fields may be present */
+  [key: string]: any;
+}
+
+/**
+ * Client info returned by `getClientInfo`.
+ * Called on every user request to provide up-to-date frontend settings.
+ */
+export interface ClientInfo {
+  /**
+   * IANA timezone string (e.g., 'America/Los_Angeles').
+   * https://en.wikipedia.org/wiki/Tz_database
+   */
+  timezone?: string;
+  /** Additional client properties */
+  [key: string]: any;
+}
+
+/**
+ * Application context returned by `getApplicationContext`.
+ * Called on every user request; payload:
+ * - must be an object ≤ 10KB
+ * - should contain at least one app-controlled key (e.g., app ID)
+ */
+export interface ApplicationContext {
+  [key: string]: any;
+}
+
+/** Navigation resolution target returned by backend */
+export interface NavigationResolutionTarget {
+  /** Target URL */
+  url: string;
+  /** Optional launch type */
+  launchType?: string;
+}
+
+/** Navigation resolution data from backend */
+export interface NavigationResolution {
+  /** Resolved navigation targets */
+  targets?: NavigationResolutionTarget[];
+  /** Errors encountered during resolution */
+  errors?: any[];
+  /** Additional fields may be present */
+  [key: string]: any;
+}
+
+/**
+ * Payload for `onNavigation`.
+ * Contains IBN target/params and optional backend resolution results.
+ */
+export interface NavigationPayload {
+  /** Intent-based navigation target descriptor */
+  ibnTarget?: any;
+  /** Intent-based navigation parameters */
+  ibnParams?: any;
+  /** Optional resolution results from backend */
+  resolution?: NavigationResolution;
+  /** Additional fields may be present */
+  [key: string]: any;
+}
+
+/**
+ * Result of `onNavigation`.
+ * - 'handled': navigation handled by plugin or default logic
+ * - 'not_handled': plugin did not handle; default logic executed
+ * - 'failed': invalid payload or neither plugin nor default logic could handle
+ *
+ * Backward compatibility:
+ * - `true` -> 'handled'
+ * - `false` or `undefined` -> 'not_handled'
+ */
+export type NavigationResult = 'handled' | 'not_handled' | 'failed';
+
+/**
+ * Response object for `getCustomThemeRoot`.
+ * Used when applying a custom theme.
+ */
+export interface CustomThemeRootInfo {
+  /**
+   * URL of the custom theme base CSS variables file.
+   * Example: "{customThemeRoot}/Base/baseLib/{themeName}/css_variables.css"
+   */
+  baseCSSVariablesUrl: string;
+
+  /**
+   * Root URL of the UI5 theme folder.
+   * Example: "{customThemeRoot}/UI5"
+   */
+  ui5ThemeRootUrl: string;
+}
+
+/** Function signature for a frontend action implementation. */
+export type FrontendActionFunction = (
+  /** Parameters provided by Joule for the action */
+  params: Record<string, any>,
+  /** Context information provided by Web Client */
+  jouleContext: JouleContext
+) => MaybePromise<any>;
+
+/**
+ * Frontend action descriptor returned by `getFrontendActions`.
+ * Joule can invoke these actions in the host application.
+ */
+export interface FrontendAction {
+  /** Unique identifier for the action (e.g., 'myapp.user.get_profile') */
+  frontend_action_name: string;
+  /** Implementation function of the action */
+  function: FrontendActionFunction;
+}
+
+/**
+ * Context object passed to frontend actions.
+ * Use for logging, correlation, and assistant/thread awareness.
+ * Note: all properties use snake_case (matching the webclient source).
+ */
+export interface JouleContext {
+  /** Name of the currently active assistant */
+  assistant_name: string;
+  /** UUID of the current conversation thread */
+  thread_id: string;
+  /** Correlation UUID for logging purposes */
+  correlation_id: string;
+}
+
+/** Speech-To-Text audio blob type used for interim/final audio handlers */
+export type STTAudioBlob = Blob;
+
+/**
+ * Web Client Bridge API interface.
+ * Implement methods to extend/customize Web Client behavior.
+ *
+ * Note: All methods may return the documented type or a Promise resolving to it.
+ * STT methods are inherently asynchronous; implement them with `async` in JavaScript.
+ */
+export interface WebClientBridge {
+  /**
+   * Called when the Web Client receives assistant response messages.
+   * Use to react to incoming messages and update your application.
+   *
+   * Bug fix (Release 2411): Only delta responses are sent; on reload, `onMessage` is not called.
+   */
+  onMessage?: (payload: OnMessagePayload, botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when the Web Client is closed.
+   * Available since Release 2411 (Nov 2024).
+   */
+  onClose?: (botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when an application/component is loaded.
+   * Available since Release 2411 (Nov 2024).
+   */
+  onLoad?: (botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when the Web Client is opened.
+   * Available since Release 2411 (Nov 2024).
+   */
+  onOpen?: (botName: string) => MaybePromise<void>;
+
+  /** Called when the Web Client is expanded to fullscreen. */
+  onExpand?: (botName: string) => MaybePromise<void>;
+
+  /** Called when the Web Client collapses out of fullscreen. */
+  onCollapse?: (botName: string) => MaybePromise<void>;
+
+  /** Called when the Debug View is opened or closed. */
+  onDebugStateChange?: (viewState: boolean, botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when a new conversation is created (e.g., clicking New Conversation
+   * or automatically after deleting the current one).
+   */
+  onConversationCreated?: (conversationId: string, botName: string) => MaybePromise<void>;
+
+  /** Called when a conversation is deleted. */
+  onConversationDeleted?: (conversationId: string, botName: string) => MaybePromise<void>;
+
+  /** Called when a conversation expires. */
+  onConversationExpired?: (conversationId: string, botName: string) => MaybePromise<void>;
+
+  /** Called when a conversation is selected. */
+  onConversationSelected?: (conversationId: string, botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when a detail view is displayed in Web Client or navigated back from.
+   * Available since Release 2510 (Oct 2025).
+   *
+   * @param state True if the current view can be navigated back from; false after navigating back.
+   * @param view The associated view name.
+   */
+  onBackNavigationStateChange?: (state: boolean, view: string, botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when the Web Client fails to load (e.g., network or configuration error).
+   */
+  onFailedToLoad?: (botName: string | null) => MaybePromise<void>;
+
+  /**
+   * Called when a fatal error occurs that prevents normal chat operation.
+   * @param errorCode - The error code identifying the failure type.
+   *   Known values: 900 (no connection), 401 (session expired), 403 (unauthorized),
+   *   404 (bot not found), 408 (request timeout), '408-retry' (timeout with retry),
+   *   'DEFAULT_WEBSOCKET' (WebSocket error), 'DEFAULT' (generic error).
+   * @param botName - The name of the assistant currently loaded in the Web Client.
+   */
+  onBlockingError?: (errorCode: string | number, botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when the Web Client dock state changes.
+   * @param dockState - The new dock state.
+   * @param botName - The name of the assistant currently loaded in the Web Client.
+   */
+  onDock?: (dockState: string, botName: string) => MaybePromise<void>;
+
+  /**
+   * Called when a logout is triggered.
+   */
+  logout?: (botName: string) => MaybePromise<void>;
+
+  /**
+   * Called on every user request to provide user-specific frontend data to Joule.
+   * Values can change during the lifetime of a conversation.
+   */
+  getClientInfo?: (botName: string) => MaybePromise<ClientInfo>;
+
+  /**
+   * Called on every user request to provide application context payload.
+   * Payload must be an object ≤ 10KB and contain at least one app-controlled key.
+   */
+  getApplicationContext?: (botName: string) => MaybePromise<ApplicationContext>;
+
+  /**
+   * Called when a user triggers a navigation action using a navigation button.
+   * Prefer default implementations for S/4 and Workzone unless customization is required.
+   *
+   * Return 'handled' | 'not_handled' | 'failed'.
+   * Backward compatible with boolean/undefined:
+   *  - true => 'handled'
+   *  - false/undefined => 'not_handled'
+   */
+  onNavigation?: (payload: NavigationPayload, botName: string) => MaybePromise<NavigationResult>;
+
+  /**
+   * Called when a custom theme is applied.
+   * Return URLs for the custom theme CSS variables file and UI5 theme root.
+   */
+  getCustomThemeRoot?: (themeName: string) => MaybePromise<CustomThemeRootInfo>;
+
+  /**
+   * Return initial display properties (position and zIndex) used the first time
+   * the component is displayed. Only one of 'left' or 'right', and one of 'top' or 'bottom'
+   * should be set to avoid layout conflicts.
+   */
+  getInitialDisplayProperties?: () => MaybePromise<InitialDisplayProperties>;
+
+  /**
+   * Provide additional environment information for the support.zip created via
+   * About -> "Download Trace". Useful for non S/4 / Workzone apps to help support analysis.
+   * @param botName - The name of the assistant currently loaded in the Web Client.
+   */
+  getSupportInfo?: (botName: string) => MaybePromise<Record<string, any>>;
+
+  /**
+   * Return an array of frontend actions currently available in the host application.
+   * Joule can invoke these actions with parameters and context.
+   */
+  getFrontendActions?: (jouleContext: JouleContext) => MaybePromise<FrontendAction[]>;
+
+  // Speech-To-Text integration (async behavior expected)
+
+  /**
+   * Return an object with STT configuration settings.
+   * Must be implemented and return an object to enable microphone features in Web Client.
+   */
+  sttGetConfig?: (botName: string) => MaybePromise<STTConfig>;
+
+  /**
+   * Called at the beginning of a new microphone interaction.
+   * Use to initialize your STT service session (e.g., create WebSocket client).
+   *
+   * `params[0]` contains metadata: `{ language, audioMetadata }`.
+   */
+  sttStartListening?: (params: [STTMetadata?], botName: string) => MaybePromise<void>;
+
+  /**
+   * Called to notify that listening should be stopped, but ongoing transcription
+   * should still complete and deliver final results. Do not abort in-progress
+   * work abruptly (e.g., close socket after a short grace period).
+   */
+  sttStopListening?: (botName: string) => MaybePromise<void>;
+
+  /**
+   * Called to immediately abort the current listening session and dismiss any results.
+   * Close service connections without waiting for final results.
+   */
+  sttAbort?: (botName: string) => MaybePromise<void>;
+
+  /**
+   * Called with the final audio blob when `useMediaRecorder: true` is returned by `sttGetConfig`.
+   * The Web Client stops recording (e.g., after silence detection) and passes the final blob.
+   */
+  sttOnFinalAudioData?: (params: [STTAudioBlob, STTMetadata?], botName: string) => MaybePromise<void>;
+
+  /**
+   * Called with interim audio blobs at intervals specified by `interimResultTime`
+   * when `useMediaRecorder: true`. Use for live transcription if your STT supports it.
+   */
+  sttOnInterimAudioData?: (params: [STTAudioBlob, STTMetadata?], botName: string) => MaybePromise<void>;
+}
+
+/**
+ * SAP DAS Web Client API available at `window.sap.das.webclient`.
+ * This interface covers only the officially documented bridge registration methods.
+ */
+export interface SAPDASWebClient {
+  // Bridge registration (recommended)
+
+  /**
+   * Register bridge callbacks with a unique provider ID.
+   * Recommended approach for multiple components providing callbacks.
+   *
+   * @param providerId Unique identifier for the callback provider.
+   * @param callbacks Object containing the callback methods to register.
+   * @param thisContext Optional `this` context to bind to callback methods.
+   * @param priority Optional priority level (see `CALL_PRIORITY`).
+   */
+  registerBridgeCallbacks(
+    providerId: string,
+    callbacks: WebClientBridge,
+    thisContext?: any,
+    priority?: number
+  ): void;
+
+  /**
+   * Unregister bridge callbacks for the specified provider ID.
+   *
+   * @param providerId Unique identifier of the callback provider to unregister.
+   */
+  unregisterBridgeCallbacks(providerId: string): void;
+
+  // Constants
+
+  /**
+   * Priority constants for bridge providers.
+   */
+  CALL_PRIORITY: CallPriority;
+
+  // Default bridge implementations
+
+  /**
+   * Default bridge implementations (S/4 and Workzone).
+   * Do not overwrite these objects. You may call them explicitly from your custom bridge.
+   */
+  defaultBridge: {
+    /** Default implementation for S/4 platform */
+    s4: WebClientBridge;
+    /** Default implementation for Workzone platform */
+    workzone: WebClientBridge;
+  };
+}
+
+export {};
