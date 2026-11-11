@@ -1,0 +1,16 @@
+parameters:
+  - name: theme_name
+
+action_groups:
+- actions:
+  - type: frontend-action
+    name: test.my.frontend.actions.setTheme
+    parameters:
+    - name: themeName
+      value: "<? theme_name ?>"
+    result_variable: frontendActionResult
+  - type: message
+    scripting_type: handlebars
+    message:
+      type: text
+      content: "{{i18n 'THEME_CHANGED' frontendActionResult.content.message}}"

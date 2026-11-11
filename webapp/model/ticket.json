@@ -1,0 +1,63 @@
+{
+  "Title": "Fix: sap.m.Table horizontal scroll jitter on iPad Safari",
+  "Priority": "P1",
+  "Status": "In Progress",
+  "EtaDev": "2025-10-10",
+  "PercentComplete": 60,
+
+  "Customer": "ACME Inc (pilot)",
+  "Environment": "iPadOS 16.6 Safari; sometimes iOS Chrome (WebKit)",
+  "Workaround": "Disable sticky headers on iPad; selection stable but UX degraded",
+
+  "ReproSteps": "1) Login as sales_rep on iPad Safari\n2) Orders > Order #12345 > Items\n3) Horizontal-scroll quickly, then tap a row checkbox\n4) Observe header jitter and selection offset",
+  "Notes": "Renderer triggers layout thrash; prototype RAF throttling reduces jitter.",
+
+  "Branch": "feature/fix-ipad-scroll-jitter",
+  "PrLink": "https://example.com/repo/pull/8421",
+  "CiJobLink": "https://ci.example.com/job/93412",
+
+  "Messages": [
+    {
+      "ts": "2025-10-08 09:15",
+      "role": "Customer",
+      "text": "Jitter visible in pilot demo; impacts checkbox accuracy. Need clarity if this is fixed before Monday.",
+      "idea": ""
+    },
+    {
+      "ts": "2025-10-08 10:05",
+      "role": "Developer",
+      "text": "Workaround applied (sticky headers off on iPad). Reduces urgency slightly; functional path OK.",
+      "idea": "Exploring RAF throttling + defer DOM writes post-scroll."
+    },
+    {
+      "ts": "2025-10-08 13:40",
+      "role": "QM",
+      "text": "Two options: submit fix by Fri 10/10 (hotfix slot A) -> deliver to pilot Sat 10/11; or submit Tue 10/14 (slot B) -> deliver Thu 10/16.",
+      "idea": ""
+    },
+    {
+      "ts": "2025-10-08 14:10",
+      "role": "Customer",
+      "text": "Monday demo can proceed with workaround, but production rollout preferred by 10/16 latest.",
+      "idea": ""
+    },
+    {
+      "ts": "2025-10-08 16:15",
+      "role": "Developer",
+      "text": "Root cause isolated (layout thrash on scroll/selection). Prototype fix stabilizes UI on iPad; E2E flakiness remains.",
+      "idea": "Replace DOM writes in onAfterRendering; add iPad OPA5 test; consider sticky header debounce."
+    },
+    {
+      "ts": "2025-10-09 09:00",
+      "role": "QM",
+      "text": "Confirming decision needed today: Slot A (submit 10/10, deliver 10/11) vs Slot B (submit 10/14, deliver 10/16).",
+      "idea": ""
+    },
+    {
+      "ts": "2025-10-09 11:25",
+      "role": "Developer",
+      "text": "Leaning Slot A; if E2E remains flaky, fallback to Slot B is acceptable without customer impact.",
+      "idea": "Gate with feature flag ui.table.stickyHeaders.iosFix for pilot-only enablement."
+    }
+  ]
+}

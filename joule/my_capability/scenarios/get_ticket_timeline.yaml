@@ -1,0 +1,9 @@
+description: >-
+  This function retrieves the conversation timeline of the currently displayed support ticket,
+  including all messages from customers, developers, and QA with their timestamps and action items.
+  Use this when the user asks about the ticket history, latest updates, what someone said,
+  or action items on the ticket.
+
+target:
+  type: function
+  name: get_ticket_timeline

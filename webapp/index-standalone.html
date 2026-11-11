@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+
+		<title>Joule Frontend Actions - Standalone App</title>
+
+		<script
+			id="sap-ui-bootstrap"
+			src="https://ui5.sap.com/1.154.0/resources/sap-ui-core.js"
+			data-sap-ui-resource-roots='{
+				"test.my.frontend.actions": "./"
+			}'
+			data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
+			data-sap-ui-compat-version="edge"
+			data-sap-ui-frame-options="trusted"
+			data-sap-ui-async="true"
+			data-sap-ui-libs="sap.ui.core,sap.m">
+		</script>
+
+		<script src="https://uics-joule.eu12.sapdas.cloud.sap/resources/public/webclient/bootstrap.js"
+			data-bot-name="my_frontend_actions"
+			data-expander-type="DEFAULT">
+		</script>
+	</head>
+
+	<body class="sapUiBody">
+		<div data-sap-ui-component data-name="test.my.frontend.actions"></div>
+	</body>
+</html>

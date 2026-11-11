@@ -1,0 +1,10 @@
+schema_version: 3.24.0
+
+metadata:
+  display_name: My Demo Capability
+  namespace: "test.my.frontend.actions"
+  name: my_demo_capability
+  version: 1.0.0
+  description: >-
+    Demo Capability used to test frontend actions
+    in connection with SAPUI5
